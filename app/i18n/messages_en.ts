@@ -22,6 +22,26 @@
     <message><source>Authentication WebView</source><translation>Authentication WebView</translation></message>
     <message><source>Exit</source><translation>Exit</translation></message>
     <message><source>A backup is running. Stop it and exit?</source><translation>A backup is running. Stop it and exit?</translation></message>
+    <message><source>Idle</source><translation>Idle</translation></message>
+    <message><source>Running</source><translation>Running</translation></message>
+    <message><source>Need MFA</source><translation>Need MFA</translation></message>
+    <message><source>Done</source><translation>Done</translation></message>
+    <message><source>Error</source><translation>Error</translation></message>
+    <message><source>Apple ID is required.</source><translation>Apple ID is required.</translation></message>
+    <message><source>Apple ID must look like an email address.</source><translation>Apple ID must look like an email address.</translation></message>
+    <message><source>Download directory is required.</source><translation>Download directory is required.</translation></message>
+    <message><source>Recent days must be at least 1.</source><translation>Recent days must be at least 1.</translation></message>
+    <message><source>Watch interval must be at least 1 minute.</source><translation>Watch interval must be at least 1 minute.</translation></message>
+    <message><source>Unsupported file match policy.</source><translation>Unsupported file match policy.</translation></message>
+    <message><source>Unsupported folder structure preset.</source><translation>Unsupported folder structure preset.</translation></message>
+    <message><source>Unsupported theme.</source><translation>Unsupported theme.</translation></message>
+    <message><source>Unsupported language.</source><translation>Unsupported language.</translation></message>
+    <message><source>Auto-delete requires explicit risk acknowledgment.</source><translation>Auto-delete requires explicit risk acknowledgment.</translation></message>
+    <message><source>Selected download path looks unsafe (root/system directory).</source><translation>Selected download path looks unsafe (root/system directory).</translation></message>
+    <message><source>Auto-delete removes local files that were deleted in iCloud.</source><translation>Auto-delete removes local files that were deleted in iCloud.</translation></message>
+    <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` executable not found. Install it or set its path.</translation></message>
+    <message><source>Failed to start `icloudpd` process.</source><translation>Failed to start `icloudpd` process.</translation></message>
+    <message><source>Process error: {0}</source><translation>Process error: {0}</translation></message>
   </context>
   <context>
     <name>SettingsView</name>
@@ -79,6 +99,16 @@
   <context>
     <name>InfoView</name>
     <message><source>Information</source><translation>Information</translation></message>
+    <message><source>## Requirements</source><translation>## Requirements</translation></message>
+    <message><source>- Packaged app includes `icloudpd` internally (no separate install required).</source><translation>- Packaged app includes `icloudpd` internally (no separate install required).</translation></message>
+    <message><source>- Source/development run requires installing dependencies with `pip install -e .`.</source><translation>- Source/development run requires installing dependencies with `pip install -e .`.</translation></message>
+    <message><source>- You can still override with an external `icloudpd` executable in settings.</source><translation>- You can still override with an external `icloudpd` executable in settings.</translation></message>
+    <message><source>- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication.</source><translation>- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication.</translation></message>
+    <message><source>## Important Limits</source><translation>## Important Limits</translation></message>
+    <message><source>- ADP (Advanced Data Protection) is not supported by `icloudpd`.</source><translation>- ADP (Advanced Data Protection) is not supported by `icloudpd`.</translation></message>
+    <message><source>- FIDO/hardware key login is not supported by `icloudpd`.</source><translation>- FIDO/hardware key login is not supported by `icloudpd`.</translation></message>
+    <message><source>## Security</source><translation>## Security</translation></message>
+    <message><source>- This GUI does **not** save Apple passwords or MFA codes.</source><translation>- This GUI does **not** save Apple passwords or MFA codes.</translation></message>
+    <message><source>- A future keyring integration hook is prepared but disabled in MVP.</source><translation>- A future keyring integration hook is prepared but disabled in MVP.</translation></message>
   </context>
 </TS>
-

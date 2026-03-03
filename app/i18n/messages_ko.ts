@@ -22,6 +22,26 @@
     <message><source>Authentication WebView</source><translation>인증 WebView</translation></message>
     <message><source>Exit</source><translation>종료</translation></message>
     <message><source>A backup is running. Stop it and exit?</source><translation>백업이 실행 중입니다. 중지 후 종료하시겠습니까?</translation></message>
+    <message><source>Idle</source><translation>대기</translation></message>
+    <message><source>Running</source><translation>실행 중</translation></message>
+    <message><source>Need MFA</source><translation>MFA 필요</translation></message>
+    <message><source>Done</source><translation>완료</translation></message>
+    <message><source>Error</source><translation>오류</translation></message>
+    <message><source>Apple ID is required.</source><translation>Apple ID는 필수입니다.</translation></message>
+    <message><source>Apple ID must look like an email address.</source><translation>Apple ID는 이메일 형식이어야 합니다.</translation></message>
+    <message><source>Download directory is required.</source><translation>다운로드 폴더는 필수입니다.</translation></message>
+    <message><source>Recent days must be at least 1.</source><translation>최근 N일은 최소 1 이상이어야 합니다.</translation></message>
+    <message><source>Watch interval must be at least 1 minute.</source><translation>Watch 간격은 최소 1분 이상이어야 합니다.</translation></message>
+    <message><source>Unsupported file match policy.</source><translation>지원하지 않는 파일 매칭 정책입니다.</translation></message>
+    <message><source>Unsupported folder structure preset.</source><translation>지원하지 않는 폴더 구조 프리셋입니다.</translation></message>
+    <message><source>Unsupported theme.</source><translation>지원하지 않는 테마입니다.</translation></message>
+    <message><source>Unsupported language.</source><translation>지원하지 않는 언어입니다.</translation></message>
+    <message><source>Auto-delete requires explicit risk acknowledgment.</source><translation>Auto-delete 사용 시 위험 동의가 필요합니다.</translation></message>
+    <message><source>Selected download path looks unsafe (root/system directory).</source><translation>선택한 다운로드 경로가 위험해 보입니다 (루트/시스템 폴더).</translation></message>
+    <message><source>Auto-delete removes local files that were deleted in iCloud.</source><translation>Auto-delete는 iCloud에서 삭제된 파일을 로컬에서도 삭제합니다.</translation></message>
+    <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` 실행 파일을 찾을 수 없습니다. 설치하거나 경로를 지정하세요.</translation></message>
+    <message><source>Failed to start `icloudpd` process.</source><translation>`icloudpd` 프로세스를 시작하지 못했습니다.</translation></message>
+    <message><source>Process error: {0}</source><translation>프로세스 오류: {0}</translation></message>
   </context>
   <context>
     <name>SettingsView</name>
@@ -79,6 +99,16 @@
   <context>
     <name>InfoView</name>
     <message><source>Information</source><translation>정보</translation></message>
+    <message><source>## Requirements</source><translation>## 요구사항</translation></message>
+    <message><source>- Packaged app includes `icloudpd` internally (no separate install required).</source><translation>- 패키징된 앱은 `icloudpd`를 내부에 포함하므로 별도 설치가 필요 없습니다.</translation></message>
+    <message><source>- Source/development run requires installing dependencies with `pip install -e .`.</source><translation>- 소스/개발 실행은 `pip install -e .`로 의존성 설치가 필요합니다.</translation></message>
+    <message><source>- You can still override with an external `icloudpd` executable in settings.</source><translation>- 설정에서 외부 `icloudpd` 실행 파일로 재정의할 수도 있습니다.</translation></message>
+    <message><source>- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication.</source><translation>- WebUI 인증을 위해 `http://127.0.0.1:8080/` 로컬 웹 접근이 필요합니다.</translation></message>
+    <message><source>## Important Limits</source><translation>## 중요한 제한사항</translation></message>
+    <message><source>- ADP (Advanced Data Protection) is not supported by `icloudpd`.</source><translation>- ADP(Advanced Data Protection)는 `icloudpd`에서 지원하지 않습니다.</translation></message>
+    <message><source>- FIDO/hardware key login is not supported by `icloudpd`.</source><translation>- FIDO/하드웨어 키 로그인은 `icloudpd`에서 지원하지 않습니다.</translation></message>
+    <message><source>## Security</source><translation>## 보안</translation></message>
+    <message><source>- This GUI does **not** save Apple passwords or MFA codes.</source><translation>- 이 GUI는 Apple 비밀번호나 MFA 코드를 **저장하지 않습니다**.</translation></message>
+    <message><source>- A future keyring integration hook is prepared but disabled in MVP.</source><translation>- 향후 keyring 연동 훅은 준비되어 있으나 MVP에서는 비활성화되어 있습니다.</translation></message>
   </context>
 </TS>
-

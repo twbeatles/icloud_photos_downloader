@@ -3,19 +3,28 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 APP_ENTRY = PROJECT_ROOT / "app" / "main.py"
 I18N_DIR = PROJECT_ROOT / "app" / "i18n"
 
 datas = [(str(I18N_DIR), "app/i18n")]
+datas += collect_data_files("icloudpd", includes=["server/templates/*", "server/static/**/*"])
+
+hiddenimports = (
+    collect_submodules("icloudpd")
+    + collect_submodules("pyicloud_ipd")
+    + collect_submodules("foundation")
+)
 
 a = Analysis(
     [str(APP_ENTRY)],
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     datas=datas,
-    hiddenimports=[],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -44,4 +53,3 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
 )
-

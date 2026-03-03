@@ -1,48 +1,63 @@
 # CLAUDE.md
 
-이 문서는 다음 세션의 AI/엔지니어가 빠르게 프로젝트 맥락을 복원하고 안전하게 작업하도록 돕기 위한 운영 가이드입니다.
+이 문서는 다음 세션의 AI/엔지니어가 빠르게 맥락을 복원하고, 기존 아키텍처를 깨지 않도록 작업하기 위한 운영 가이드입니다.
 
 ## 1) 프로젝트 정체성
 
 - 프로젝트명: `icloudpd-gui`
-- 목적: `icloudpd`를 직접 수정하지 않고 GUI로 래핑
-- 핵심 스택:
-  - Python
-  - PySide6
-  - qdarktheme
-  - PyInstaller(onefile)
+- 목표: `icloudpd` upstream을 수정하지 않고 GUI 래퍼로 제공
+- UI: PySide6
+- 프로세스 실행: `QProcess` subprocess
+- 배포: PyInstaller onefile (`icloudpd` 번들 포함)
 
 ## 2) 절대 원칙
 
-1. `icloudpd` 코어 로직을 이 레포에 재구현하지 않는다.
-2. 인증은 `webui` 우선이며 GUI는 URL 안내 및 열기 역할에 집중한다.
+1. `icloudpd` 코어를 이 레포에서 재구현/패치하지 않는다.
+2. 인증은 WebUI 우선(`--password-provider webui`, `--mfa-provider webui`)으로 유지한다.
 3. 비밀번호/MFA 코드는 저장하지 않는다.
-4. 설정-실행-로그 파이프라인을 깨는 변경을 피한다.
+4. 데이터 손실 위험 옵션(auto-delete) 보호 장치를 제거하지 않는다.
+5. UI 문자열 변경 시 EN/KO i18n 자산(`.ts/.qm`)을 함께 갱신한다.
 
-## 3) 주요 파일과 책임
+## 3) 핵심 실행 우선순위 (`app/core/runner.py`)
+
+`resolve_icloudpd_command()` 우선순위:
+
+1. 사용자 지정 실행 파일 (`settings.icloudpd_executable`)
+2. PyInstaller 배포본이면 내부 워커 호출
+   - `sys.executable --_run_icloudpd`
+3. 소스/개발 환경이면 모듈 실행
+   - `sys.executable -m icloudpd.cli`
+4. PATH의 `icloudpd`
+
+주의:
+- 배포본에서 내부 워커 플래그(`--_run_icloudpd`) 제거/변경 시 번들 실행이 깨진다.
+
+## 4) 주요 파일 책임
 
 - `app/core/config.py`
-  - `BackupSettings` 도메인 모델
-  - GUI 설정 -> `icloudpd` 인자 변환
-  - 유효성 검사 + 위험 경로 판정
+  - `BackupSettings`, `ValidationIssue`
+  - GUI 설정 -> CLI args 변환
+  - 위험 경로 판정/검증
 - `app/core/runner.py`
-  - `QProcess` 실행 래퍼
-  - 시작/중지/종료 시그널 처리
-  - stdout/stderr 라인 스트리밍
+  - `QProcess` start/stop/kill fallback
+  - stdout/stderr 라인 스트리밍 + signal 발행
 - `app/core/log_parser.py`
-  - 진행/오류/MFA/완료 상태 감지
-  - 최소 통계(`downloaded_count`, `error_count`)
+  - MFA/에러/완료 키워드 파싱
+  - `RunSummary` 누적
+- `app/core/i18n.py`
+  - 기본 언어 결정(시스템 로캘)
+  - `QTranslator` 로드/교체
 - `app/storage/settings_store.py`
-  - `QSettings` 저장/복원
-  - 민감정보 미저장
+  - `QSettings` 기반 저장/복원
+  - 민감정보 저장 금지, keyring 훅만 존재
 - `app/ui/*.py`
-  - 페이지와 메인 윈도우, 사용자 인터랙션
-- `scripts/build.py`
-  - 번역 컴파일 + PyInstaller 빌드
+  - 메인 윈도우/페이지/모달/사용자 인터랙션
 - `icloudpd-gui.spec`
-  - PyInstaller 공식 빌드 설정(재현성 확보)
+  - 번들 데이터/hidden import 포함
+- `scripts/build.py`
+  - 번역 컴파일 + onefile 빌드
 
-## 4) 로컬 개발 커맨드
+## 5) 개발 표준 커맨드
 
 설치:
 ```bash
@@ -51,7 +66,7 @@ pip install -e .[dev]
 
 실행:
 ```bash
-icloudpd-gui
+python -m app.main
 ```
 
 테스트:
@@ -64,28 +79,28 @@ python -m pytest -q
 python scripts/build.py
 ```
 
-## 5) 변경 시 체크리스트
+## 6) 변경 체크리스트
 
-1. `README.md`가 실제 동작과 일치하는가
-2. `config.py` 매핑 규칙이 깨지지 않았는가
-3. `runner.py` 중지 시 `terminate -> kill` 흐름이 유지되는가
-4. i18n 문자열 변경 시 `messages_en.ts/messages_ko.ts`가 같이 갱신되었는가
-5. 테스트 3종이 통과하는가
+1. `README.md`, `CLAUDE.md`, `GEMINI.md`가 코드 동작과 일치하는가
+2. `config.py` 매핑 규칙이 요구사항과 동일한가
+3. `runner.py` stop 로직(`terminate -> kill`)이 유지되는가
+4. i18n 변경 시 `.ts`/`.qm` 동시 반영했는가
+5. 테스트(`pytest -q`) 통과했는가
+6. `icloudpd-gui.spec`가 번들 전략을 계속 반영하는가
 
-## 6) 자주 발생하는 실수
+## 7) 자주 발생하는 실수
 
-- `--recent`를 날짜 의미로 오해하는 것
-  - 이 프로젝트는 날짜 필터로 `--skip-created-before Nd`를 사용한다.
-- `*.spec`를 `.gitignore`로 누락시키는 것
-  - `icloudpd-gui.spec`는 버전 관리 대상이다.
-- UI 문자열 추가 후 번역 누락
-  - 최소한 EN/KO 둘 다 반영한다.
+- 한국어 시스템에서 사용자 언어 선택을 강제로 덮어쓰는 회귀
+  - 기본값만 로캘 기반, 저장된 사용자 선택은 존중해야 함
+- `*.spec` 전체를 ignore해서 공식 spec이 누락되는 문제
+  - `icloudpd-gui.spec`는 반드시 버전 관리
+- 문서 갱신 누락
+  - 실행 우선순위/번들 여부가 코드와 어긋나기 쉬움
 
-## 7) 다음 세션 권장 시작 순서
+## 8) 세션 시작 추천 순서
 
 1. `README.md`
 2. `app/core/config.py`
 3. `app/core/runner.py`
 4. `app/ui/main_window.py`
-5. `scripts/build.py` + `icloudpd-gui.spec`
-
+5. `icloudpd-gui.spec` / `scripts/build.py`

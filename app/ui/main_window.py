@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-import qdarktheme
+try:
+    import qdarktheme
+except ImportError:
+    qdarktheme = None  # type: ignore[assignment]
 from PySide6.QtCore import QEvent, QUrl
 from PySide6.QtGui import QCloseEvent, QDesktopServices
 from PySide6.QtWidgets import (
@@ -208,7 +211,14 @@ class MainWindow(QMainWindow):
     def _on_runner_state_changed(self, state: AppState) -> None:
         self._state = state
         self.run_view.set_state(state)
-        self.statusBar().showMessage(state.value.replace("_", " ").title(), 4000)
+        state_text = {
+            AppState.IDLE: self.tr("Idle"),
+            AppState.RUNNING: self.tr("Running"),
+            AppState.NEED_MFA: self.tr("Need MFA"),
+            AppState.DONE: self.tr("Done"),
+            AppState.ERROR: self.tr("Error"),
+        }
+        self.statusBar().showMessage(state_text[state], 4000)
 
     def _on_runner_log_line(self, line: str) -> None:
         self._logs.append(line)
@@ -237,8 +247,9 @@ class MainWindow(QMainWindow):
             )
 
     def _on_runner_error(self, message: str) -> None:
-        self.statusBar().showMessage(message, 6000)
-        self._show_message(self.tr("Runner Error"), message, icon="warning")
+        translated = self._translate_runtime_message(message)
+        self.statusBar().showMessage(translated, 6000)
+        self._show_message(self.tr("Runner Error"), translated, icon="warning")
 
     def _open_mfa_url(self) -> None:
         url = self.run_view.mfa_url()
@@ -304,14 +315,23 @@ class MainWindow(QMainWindow):
 
     def _apply_theme(self, theme: str) -> None:
         selected = "light" if theme == "light" else "dark"
-        qdarktheme.setup_theme(selected)
+        if qdarktheme is None:
+            return
+
+        if hasattr(qdarktheme, "setup_theme"):
+            qdarktheme.setup_theme(selected)
+            return
+
+        if hasattr(qdarktheme, "load_stylesheet"):
+            app = self._require_qt_app()
+            app.setStyleSheet(qdarktheme.load_stylesheet(selected))
 
     def _show_issues(self, title: str, issues: list[ValidationIssue], icon: str = "warning") -> None:
-        lines = [f"- {issue.message}" for issue in issues]
+        lines = [f"- {self._translate_validation_message(issue.message)}" for issue in issues]
         self._show_message(title, "\n".join(lines), icon=icon)
 
     def _confirm_issues(self, title: str, issues: list[ValidationIssue]) -> bool:
-        lines = [f"- {issue.message}" for issue in issues]
+        lines = [f"- {self._translate_validation_message(issue.message)}" for issue in issues]
         answer = QMessageBox.warning(
             self,
             title,
@@ -352,3 +372,32 @@ class MainWindow(QMainWindow):
                 return
             self._runner.stop(3000)
         event.accept()
+
+    def _translate_validation_message(self, message: str) -> str:
+        known = {
+            "Apple ID is required.",
+            "Apple ID must look like an email address.",
+            "Download directory is required.",
+            "Recent days must be at least 1.",
+            "Watch interval must be at least 1 minute.",
+            "Unsupported file match policy.",
+            "Unsupported folder structure preset.",
+            "Unsupported theme.",
+            "Unsupported language.",
+            "Auto-delete requires explicit risk acknowledgment.",
+            "Selected download path looks unsafe (root/system directory).",
+            "Auto-delete removes local files that were deleted in iCloud.",
+        }
+        if message in known:
+            return self.tr(message)
+        return message
+
+    def _translate_runtime_message(self, message: str) -> str:
+        if message == "`icloudpd` executable not found. Install it or set its path.":
+            return self.tr("`icloudpd` executable not found. Install it or set its path.")
+        if message == "Failed to start `icloudpd` process.":
+            return self.tr("Failed to start `icloudpd` process.")
+        if message.startswith("Process error: "):
+            detail = message.replace("Process error: ", "", 1)
+            return self.tr("Process error: {0}").format(detail)
+        return message

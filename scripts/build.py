@@ -61,7 +61,17 @@ def build_onefile() -> None:
     subprocess.run(cmd, check=True, cwd=ROOT)
 
 
+def ensure_icloudpd_available() -> None:
+    try:
+        import icloudpd  # noqa: F401
+    except Exception as exc:
+        raise RuntimeError(
+            "The `icloudpd` package is required for bundled build. Run `pip install -e .` first."
+        ) from exc
+
+
 def main() -> int:
+    ensure_icloudpd_available()
     compile_translations()
     build_onefile()
     print("Build complete. See dist/")

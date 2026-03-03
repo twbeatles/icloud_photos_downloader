@@ -6,8 +6,12 @@ from PySide6.QtCore import QCoreApplication, QLocale, QObject, QTranslator, Sign
 from PySide6.QtWidgets import QApplication
 
 
+def is_system_korean() -> bool:
+    return QLocale.system().name().lower().startswith("ko")
+
+
 def default_language_code() -> str:
-    return "ko" if QLocale.system().name().lower().startswith("ko") else "en"
+    return "ko" if is_system_korean() else "en"
 
 
 class I18nManager(QObject):
@@ -57,4 +61,3 @@ class I18nManager(QObject):
         if self._current_language == "ko" and translated == key_or_text:
             return self._fallback_ko.get(key_or_text, key_or_text)
         return translated
-

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
 import shutil
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QProcess, Signal
@@ -8,14 +10,36 @@ from PySide6.QtCore import QObject, QProcess, Signal
 from app.core.config import BackupSettings, to_icloudpd_args
 from app.core.log_parser import AppState, LogParser, RunSummary, final_state
 
+INTERNAL_WORKER_FLAG = "--_run_icloudpd"
 
-def resolve_icloudpd_executable(override: str | None) -> str | None:
+
+def _has_icloudpd_module() -> bool:
+    try:
+        return importlib.util.find_spec("icloudpd.cli") is not None
+    except ModuleNotFoundError:
+        return False
+
+
+def resolve_icloudpd_command(override: str | None) -> tuple[str, list[str]] | None:
     if override:
         candidate = Path(override).expanduser()
         if candidate.exists():
-            return str(candidate)
+            return str(candidate), []
         return None
-    return shutil.which("icloudpd")
+
+    # In PyInstaller bundle, reuse the current executable and run internal worker mode.
+    if getattr(sys, "frozen", False):
+        return sys.executable, [INTERNAL_WORKER_FLAG]
+
+    # Development/source mode: prefer module execution if dependency is installed.
+    if _has_icloudpd_module():
+        return sys.executable, ["-m", "icloudpd.cli"]
+
+    path_executable = shutil.which("icloudpd")
+    if path_executable:
+        return path_executable, []
+
+    return None
 
 
 class ICloudPdRunner(QObject):
@@ -48,14 +72,15 @@ class ICloudPdRunner(QObject):
             self.error.emit("A download process is already running.")
             return
 
-        executable = resolve_icloudpd_executable(settings.icloudpd_executable)
-        if not executable:
+        command = resolve_icloudpd_command(settings.icloudpd_executable)
+        if not command:
             self._set_state(AppState.ERROR)
             self.error.emit("`icloudpd` executable not found. Install it or set its path.")
             self.finished.emit(-1, "executable_not_found")
             return
 
-        args = to_icloudpd_args(settings)
+        executable, prefix_args = command
+        args = prefix_args + to_icloudpd_args(settings)
 
         self._parser.reset()
         self._stdout_buffer = b""
@@ -170,4 +195,3 @@ class ICloudPdRunner(QObject):
             return
         self._state = state
         self.state_changed.emit(state)
-

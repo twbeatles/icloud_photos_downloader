@@ -12,7 +12,8 @@ license = { text = "MIT" }
 authors = [{ name = "icloudpd-gui contributors" }]
 dependencies = [
     "PySide6>=6.7,<7",
-    "pyqtdarktheme>=2.1,<3",
+    "pyqtdarktheme>=0.1.7,<1",
+    "icloudpd>=1.32.2,<2",
 ]
 
 [project.optional-dependencies]

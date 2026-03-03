@@ -29,21 +29,21 @@ class InfoView(QWidget):
 
     def retranslate_ui(self) -> None:
         self.title_label.setText(self.tr("Information"))
+        lines = [
+            self.tr("## Requirements"),
+            self.tr("- Packaged app includes `icloudpd` internally (no separate install required)."),
+            self.tr("- Source/development run requires installing dependencies with `pip install -e .`."),
+            self.tr("- You can still override with an external `icloudpd` executable in settings."),
+            self.tr("- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication."),
+            "",
+            self.tr("## Important Limits"),
+            self.tr("- ADP (Advanced Data Protection) is not supported by `icloudpd`."),
+            self.tr("- FIDO/hardware key login is not supported by `icloudpd`."),
+            "",
+            self.tr("## Security"),
+            self.tr("- This GUI does **not** save Apple passwords or MFA codes."),
+            self.tr("- A future keyring integration hook is prepared but disabled in MVP."),
+        ]
         self.info_text.setMarkdown(
-            self.tr(
-                """
-## Requirements
-- `icloudpd` must be installed and reachable from PATH (or set executable path in settings).
-- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication.
-
-## Important Limits
-- ADP (Advanced Data Protection) is not supported by `icloudpd`.
-- FIDO/hardware key login is not supported by `icloudpd`.
-
-## Security
-- This GUI does **not** save Apple passwords or MFA codes.
-- A future keyring integration hook is prepared but disabled in MVP.
-"""
-            )
+            "\n".join(lines)
         )
-

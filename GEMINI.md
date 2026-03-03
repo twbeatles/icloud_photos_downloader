@@ -1,77 +1,86 @@
 # GEMINI.md
 
-이 문서는 다음 세션 AI가 기능 추가/수정 시 판단 기준을 일관되게 유지하기 위한 규격 문서입니다.
+이 문서는 기능 추가/수정 시 요구사항 정합성을 확인하기 위한 기준 문서입니다.
 
-## A. 제품 요구 정합성 기준
+## A. 제품 요구 정합성
 
 ### A-1. 인증
-- 기본 인증 입력 흐름은 `webui`.
-- GUI는 인증 URL을 노출하고 외부 브라우저 열기를 제공해야 함.
-- QtWebEngine이 있으면 앱 내 WebView는 선택 기능으로만 제공.
+- 인증 방식은 WebUI 우선이어야 한다.
+- GUI는 MFA 필요 시 URL 표시 + 외부 브라우저 열기를 제공해야 한다.
+- QtWebEngine이 있을 때만 앱 내 WebView 기능을 선택적으로 활성화한다.
 
-### A-2. 설정
-- 필수: Apple ID, 다운로드 경로.
-- 고급: file-match-policy, folder-structure, XMP, EXIF.
-- watch interval은 분 단위 입력, 내부는 초로 변환.
+### A-2. 설정/실행 흐름
+- 필수 입력: Apple ID, 다운로드 경로.
+- 실행 동선: 설정 -> 실행 -> 로그/상태 -> 결과 요약.
+- watch 모드 interval은 분 입력, 내부 변환은 초 단위.
 
 ### A-3. 안전장치
-- auto-delete는 위험 경고 + 확인 절차 필요.
-- 루트/시스템 폴더 경고 필요.
-- 실행 중 앱 종료 시 확인 모달 필요.
+- auto-delete는 2단계 확인(체크 + 경고 모달).
+- 위험 경로(루트/시스템 폴더) 경고.
+- 실행 중 종료 시 확인 모달 및 안전 중지.
 
 ### A-4. 보안
 - 비밀번호/MFA 저장 금지.
-- keyring 훅은 인터페이스만 허용(no-op).
+- keyring은 인터페이스 훅만 허용(no-op).
 
-## B. 기술 요구 정합성 기준
+## B. 기술 요구 정합성
 
-### B-1. `icloudpd` 호출 방식
-- `QProcess` 기반 subprocess 실행.
-- 우선순위:
-  1. 설정된 실행 파일 경로
-  2. PATH 탐색(`shutil.which("icloudpd")`)
+### B-1. `icloudpd` 실행 전략
+- `QProcess` subprocess 실행 유지.
+- 실행 해석 우선순위:
+  1. 설정된 외부 실행 파일 경로
+  2. PyInstaller 배포본: `sys.executable --_run_icloudpd`
+  3. 소스/개발 모드: `python -m icloudpd.cli`
+  4. PATH의 `icloudpd`
 
-### B-2. 상태 모델
+### B-2. 상태/로그 모델
 - 상태: `idle`, `running`, `need_mfa`, `done`, `error`.
-- 로그 파싱으로 MFA/에러/완료를 갱신.
+- 로그 파서 키워드 기반 감지:
+  - MFA 문구
+  - WebUI 시작 문구 -> `http://127.0.0.1:8080/`
+  - 완료 문구
+  - ERROR 라인
 
 ### B-3. i18n
-- `QTranslator` + `messages_en/ko.ts(.qm)` 사용.
-- UI 문자열 변경 시 번역 파일 동시 업데이트.
+- `QTranslator` + `messages_en/ko.ts(.qm)`.
+- 기본 언어는 시스템 로캘(ko면 한국어).
+- 사용자 선택 언어는 `QSettings`로 복원되어야 하며 강제 덮어쓰기 금지.
 
-### B-4. 빌드
-- 번역 컴파일 후 `icloudpd-gui.spec`로 PyInstaller onefile 빌드.
-- 빌드 경로/산출물은 `dist/` 기준.
+### B-4. 빌드/배포
+- `scripts/build.py`에서 `.ts -> .qm` 후 PyInstaller onefile.
+- `icloudpd-gui.spec`는 번들 리소스/hidden import를 포함해야 한다.
+- 산출물은 `dist/` 기준.
 
 ## C. 변경 검증 프로토콜
 
-1. 정적 점검
-- 타입/임포트/경로 오류 없는지 확인
+1. 정적 검토
+- 임포트/경로/타입 오류 여부
+- 문서와 코드 동작 일치 여부
 
-2. 단위 테스트
+2. 자동 테스트
 ```bash
 python -m pytest -q
 ```
 
-3. 수동 시나리오
+3. 수동 QA
 - 설정 저장/복원
-- Start/Stop 동작
+- Start/Stop + 종료 안전 처리
 - MFA URL 노출/열기
-- 언어 전환(EN/KO)
-- 테마 전환(라이트/다크)
+- EN/KO 즉시 반영
+- 라이트/다크 전환 반영
+- 번들/외부 실행 파일 해석 우선순위 확인
 
 ## D. 금지 패턴
 
-- `icloudpd` 내부 소스 종속을 강화하는 직접 import 실행
-- 민감 정보 저장
-- `spec` 파일 없이 임시 옵션만으로 배포 빌드 수행
-- 문서 미갱신 상태로 동작 변경 반영
+- `icloudpd` upstream 코드 직접 수정
+- 민감정보 저장 구현
+- 공식 spec 우회 임시 빌드 파이프라인 추가
+- 동작 변경 후 문서/번역 미갱신
 
 ## E. 우선순위
 
-1. 데이터 손실 방지(auto-delete/경로 안정성)
+1. 데이터 손실 방지(auto-delete/경로 안전성)
 2. 실행 신뢰성(start/stop/process 상태)
 3. 사용자 피드백 품질(로그/상태/오류 메시지)
-4. 빌드 재현성(spec + 스크립트)
-5. 문서 정합성
-
+4. 번들 빌드 재현성(spec + build.py)
+5. 문서 및 i18n 정합성
