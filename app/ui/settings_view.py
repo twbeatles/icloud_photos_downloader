@@ -26,6 +26,7 @@ from app.core.config import BackupSettings
 class SettingsView(QWidget):
     language_changed = Signal(str)
     theme_changed = Signal(str)
+    settings_changed = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -129,6 +130,31 @@ class SettingsView(QWidget):
         self.exif_checkbox = QCheckBox()
         advanced_layout.addRow(self.exif_checkbox)
 
+        self.auto_retry_checkbox = QCheckBox()
+        self.auto_retry_checkbox.toggled.connect(self._on_auto_retry_toggled)
+        advanced_layout.addRow(self.auto_retry_checkbox)
+
+        self.auto_retry_attempts_label = QLabel()
+        self.auto_retry_attempts_spin = QSpinBox()
+        self.auto_retry_attempts_spin.setRange(1, 20)
+        self.auto_retry_attempts_spin.setValue(3)
+        self.auto_retry_attempts_spin.setEnabled(False)
+        advanced_layout.addRow(self.auto_retry_attempts_label, self.auto_retry_attempts_spin)
+
+        self.auto_retry_base_delay_label = QLabel()
+        self.auto_retry_base_delay_spin = QSpinBox()
+        self.auto_retry_base_delay_spin.setRange(1, 3600)
+        self.auto_retry_base_delay_spin.setValue(10)
+        self.auto_retry_base_delay_spin.setEnabled(False)
+        advanced_layout.addRow(self.auto_retry_base_delay_label, self.auto_retry_base_delay_spin)
+
+        self.auto_retry_max_delay_label = QLabel()
+        self.auto_retry_max_delay_spin = QSpinBox()
+        self.auto_retry_max_delay_spin.setRange(1, 86400)
+        self.auto_retry_max_delay_spin.setValue(300)
+        self.auto_retry_max_delay_spin.setEnabled(False)
+        advanced_layout.addRow(self.auto_retry_max_delay_label, self.auto_retry_max_delay_spin)
+
         exec_row = QHBoxLayout()
         exec_row.setSpacing(8)
         self.icloudpd_exec_edit = QLineEdit()
@@ -157,15 +183,11 @@ class SettingsView(QWidget):
         root.addWidget(self.advanced_card)
 
         root.addStretch(1)
+        self._wire_settings_change_signals()
         self._retranslate_ui()
 
     def load_settings(self, settings: BackupSettings) -> None:
-        signal_widgets = [
-            self.auto_delete_checkbox,
-            self.watch_checkbox,
-            self.language_combo,
-            self.theme_combo,
-        ]
+        signal_widgets = self._settings_change_widgets()
         for widget in signal_widgets:
             widget.blockSignals(True)
 
@@ -186,6 +208,13 @@ class SettingsView(QWidget):
         self._set_combo_by_data(self.folder_preset_combo, settings.folder_structure_preset)
         self.xmp_checkbox.setChecked(settings.xmp_sidecar)
         self.exif_checkbox.setChecked(settings.set_exif_datetime)
+        self.auto_retry_checkbox.setChecked(settings.auto_retry_enabled)
+        self.auto_retry_attempts_spin.setEnabled(settings.auto_retry_enabled)
+        self.auto_retry_base_delay_spin.setEnabled(settings.auto_retry_enabled)
+        self.auto_retry_max_delay_spin.setEnabled(settings.auto_retry_enabled)
+        self.auto_retry_attempts_spin.setValue(settings.auto_retry_max_attempts)
+        self.auto_retry_base_delay_spin.setValue(settings.auto_retry_base_delay_seconds)
+        self.auto_retry_max_delay_spin.setValue(settings.auto_retry_max_delay_seconds)
         self.icloudpd_exec_edit.setText(settings.icloudpd_executable or "")
         self._set_combo_by_data(self.language_combo, settings.language)
         self._set_combo_by_data(self.theme_combo, settings.theme)
@@ -216,6 +245,10 @@ class SettingsView(QWidget):
             xmp_sidecar=self.xmp_checkbox.isChecked(),
             set_exif_datetime=self.exif_checkbox.isChecked(),
             icloudpd_executable=executable,
+            auto_retry_enabled=self.auto_retry_checkbox.isChecked(),
+            auto_retry_max_attempts=self.auto_retry_attempts_spin.value(),
+            auto_retry_base_delay_seconds=self.auto_retry_base_delay_spin.value(),
+            auto_retry_max_delay_seconds=self.auto_retry_max_delay_spin.value(),
             language=str(self.language_combo.currentData()),
             theme=str(self.theme_combo.currentData()),
         )
@@ -249,6 +282,10 @@ class SettingsView(QWidget):
 
         self.xmp_checkbox.setText(self.tr("Enable XMP Sidecar"))
         self.exif_checkbox.setText(self.tr("Set EXIF DateTime"))
+        self.auto_retry_checkbox.setText(self.tr("Enable Auto Retry For Transient Network Errors"))
+        self.auto_retry_attempts_label.setText(self.tr("Auto Retry Max Attempts"))
+        self.auto_retry_base_delay_label.setText(self.tr("Auto Retry Base Delay (seconds)"))
+        self.auto_retry_max_delay_label.setText(self.tr("Auto Retry Max Delay (seconds)"))
         self.icloudpd_exec_button.setText(self.tr("Browse"))
 
         self._set_combo_text(self.language_combo, 0, "English")
@@ -270,9 +307,11 @@ class SettingsView(QWidget):
 
     def _emit_language_changed(self) -> None:
         self.language_changed.emit(str(self.language_combo.currentData()))
+        self._emit_settings_changed()
 
     def _emit_theme_changed(self) -> None:
         self.theme_changed.emit(str(self.theme_combo.currentData()))
+        self._emit_settings_changed()
 
     def _on_watch_toggled(self, checked: bool) -> None:
         self.watch_interval_spin.setEnabled(checked)
@@ -300,6 +339,13 @@ class SettingsView(QWidget):
         else:
             self.auto_delete_ack_checkbox.setChecked(False)
             self.auto_delete_ack_checkbox.setEnabled(False)
+        self._emit_settings_changed()
+
+    def _on_auto_retry_toggled(self, checked: bool) -> None:
+        self.auto_retry_attempts_spin.setEnabled(checked)
+        self.auto_retry_base_delay_spin.setEnabled(checked)
+        self.auto_retry_max_delay_spin.setEnabled(checked)
+        self._emit_settings_changed()
 
     def _pick_download_dir(self) -> None:
         selected = QFileDialog.getExistingDirectory(
@@ -309,6 +355,7 @@ class SettingsView(QWidget):
         )
         if selected:
             self.download_dir_edit.setText(selected)
+            self._emit_settings_changed()
 
     def _pick_icloudpd_executable(self) -> None:
         selected, _ = QFileDialog.getOpenFileName(
@@ -318,8 +365,56 @@ class SettingsView(QWidget):
         )
         if selected:
             self.icloudpd_exec_edit.setText(selected)
+            self._emit_settings_changed()
 
     def _wrap_layout(self, layout: QHBoxLayout) -> QWidget:
         wrapper = QWidget()
         wrapper.setLayout(layout)
         return wrapper
+
+    def _emit_settings_changed(self) -> None:
+        self.settings_changed.emit()
+
+    def _wire_settings_change_signals(self) -> None:
+        self.apple_id_edit.editingFinished.connect(self._emit_settings_changed)
+        self.download_dir_edit.editingFinished.connect(self._emit_settings_changed)
+        self.incremental_checkbox.toggled.connect(self._emit_settings_changed)
+        self.auto_delete_ack_checkbox.toggled.connect(self._emit_settings_changed)
+        self.live_photo_checkbox.toggled.connect(self._emit_settings_changed)
+        self.raw_include_checkbox.toggled.connect(self._emit_settings_changed)
+        self.recent_days_spin.valueChanged.connect(self._emit_settings_changed)
+        self.watch_checkbox.toggled.connect(self._emit_settings_changed)
+        self.watch_interval_spin.valueChanged.connect(self._emit_settings_changed)
+        self.file_match_combo.currentIndexChanged.connect(self._emit_settings_changed)
+        self.folder_preset_combo.currentIndexChanged.connect(self._emit_settings_changed)
+        self.xmp_checkbox.toggled.connect(self._emit_settings_changed)
+        self.exif_checkbox.toggled.connect(self._emit_settings_changed)
+        self.icloudpd_exec_edit.editingFinished.connect(self._emit_settings_changed)
+        self.auto_retry_attempts_spin.valueChanged.connect(self._emit_settings_changed)
+        self.auto_retry_base_delay_spin.valueChanged.connect(self._emit_settings_changed)
+        self.auto_retry_max_delay_spin.valueChanged.connect(self._emit_settings_changed)
+
+    def _settings_change_widgets(self) -> list[QWidget]:
+        return [
+            self.apple_id_edit,
+            self.download_dir_edit,
+            self.incremental_checkbox,
+            self.auto_delete_checkbox,
+            self.auto_delete_ack_checkbox,
+            self.live_photo_checkbox,
+            self.raw_include_checkbox,
+            self.recent_days_spin,
+            self.watch_checkbox,
+            self.watch_interval_spin,
+            self.file_match_combo,
+            self.folder_preset_combo,
+            self.xmp_checkbox,
+            self.exif_checkbox,
+            self.icloudpd_exec_edit,
+            self.auto_retry_checkbox,
+            self.auto_retry_attempts_spin,
+            self.auto_retry_base_delay_spin,
+            self.auto_retry_max_delay_spin,
+            self.language_combo,
+            self.theme_combo,
+        ]

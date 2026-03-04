@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from app.core.config import BackupSettings, is_unsafe_download_dir, to_icloudpd_args, validate_settings
+from app.core.config import (
+    BackupSettings,
+    is_unsafe_download_dir,
+    normalize_download_dir,
+    to_icloudpd_args,
+    validate_settings,
+)
 
 
 def test_to_icloudpd_args_defaults() -> None:
@@ -14,7 +20,7 @@ def test_to_icloudpd_args_defaults() -> None:
     assert "user@example.com" in args
     assert "--directory" in args
     directory_value = args[args.index("--directory") + 1]
-    assert Path(directory_value) == Path("/tmp/photos")
+    assert Path(directory_value) == Path(normalize_download_dir("/tmp/photos"))
     assert "--password-provider" in args
     assert "webui" in args
     assert "--mfa-provider" in args
@@ -74,3 +80,23 @@ def test_auto_delete_requires_acknowledgement() -> None:
 def test_unsafe_dir_detection_for_root() -> None:
     root = Path("/" if Path("/").exists() else Path.home().anchor)
     assert is_unsafe_download_dir(root)
+
+
+def test_normalize_download_dir_expands_home() -> None:
+    normalized = normalize_download_dir("~")
+    assert Path(normalized) == Path.home().resolve()
+
+
+def test_validate_settings_with_invalid_retry_values() -> None:
+    settings = BackupSettings(
+        apple_id="user@example.com",
+        download_dir="/tmp/photos",
+        auto_retry_max_attempts=0,
+        auto_retry_base_delay_seconds=0,
+        auto_retry_max_delay_seconds=0,
+    )
+    issues = validate_settings(settings)
+    fields = {issue.field for issue in issues}
+    assert "auto_retry_max_attempts" in fields
+    assert "auto_retry_base_delay_seconds" in fields
+    assert "auto_retry_max_delay_seconds" in fields

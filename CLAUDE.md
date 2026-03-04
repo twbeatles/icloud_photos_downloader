@@ -31,18 +31,24 @@
 
 주의:
 - 배포본에서 내부 워커 플래그(`--_run_icloudpd`) 제거/변경 시 번들 실행이 깨진다.
+- 사용자 지정 실행 파일이 유효하지 않으면 경고 후 다음 우선순위로 fallback한다.
 
 ## 4) 주요 파일 책임
 
 - `app/core/config.py`
   - `BackupSettings`, `ValidationIssue`
   - GUI 설정 -> CLI args 변환
-  - 위험 경로 판정/검증
+  - 경로 정규화(`expanduser + resolve(strict=False)`)
+  - 위험 경로 판정/검증 + 자동 재시도 파라미터 검증
 - `app/core/runner.py`
   - `QProcess` start/stop/kill fallback
+  - 실행 직전 다운로드 폴더 preflight(생성/쓰기 점검)
   - stdout/stderr 라인 스트리밍 + signal 발행
+  - 커맨드 로그 마스킹(`--username`)
+  - final state 기준 완료 reason 일원화
 - `app/core/log_parser.py`
-  - MFA/에러/완료 키워드 파싱
+  - MFA/에러/완료 키워드 파싱(case-insensitive)
+  - 일시 네트워크 오류(transient) 판정
   - `RunSummary` 누적
 - `app/core/i18n.py`
   - 기본 언어 결정(시스템 로캘)
@@ -50,8 +56,12 @@
 - `app/storage/settings_store.py`
   - `QSettings` 기반 저장/복원
   - 민감정보 저장 금지, keyring 훅만 존재
+  - 실행 이력(JSON 배열, 최신순 cap) 저장/로드
 - `app/ui/*.py`
-  - 메인 윈도우/페이지/모달/사용자 인터랙션
+  - 설정 즉시 저장 + 종료 시 재저장
+  - 자동 재시도 옵션 UI
+  - Run/Logs 검색 + 오류 필터
+  - Logs 최근 실행 이력 표시
 - `icloudpd-gui.spec`
   - 번들 데이터/hidden import 포함
 - `scripts/build.py`
@@ -83,10 +93,11 @@ python scripts/build.py
 
 1. `README.md`, `CLAUDE.md`, `GEMINI.md`가 코드 동작과 일치하는가
 2. `config.py` 매핑 규칙이 요구사항과 동일한가
-3. `runner.py` stop 로직(`terminate -> kill`)이 유지되는가
-4. i18n 변경 시 `.ts`/`.qm` 동시 반영했는가
-5. 테스트(`pytest -q`) 통과했는가
-6. `icloudpd-gui.spec`가 번들 전략을 계속 반영하는가
+3. `runner.py` stop 로직(`terminate -> kill`)과 preflight/fallback가 유지되는가
+4. final_state와 UI 완료 메시지 기준이 일치하는가
+5. i18n 변경 시 `.ts`/`.qm` 동시 반영했는가
+6. 테스트(`pytest -q`) 통과했는가
+7. `icloudpd-gui.spec`가 번들 전략을 계속 반영하는가
 
 ## 7) 자주 발생하는 실수
 

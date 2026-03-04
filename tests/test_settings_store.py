@@ -1,15 +1,18 @@
+import os
 from pathlib import Path
 
-from PySide6.QtCore import QCoreApplication
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtWidgets import QApplication
 
 from app.core.config import BackupSettings
-from app.storage.settings_store import SettingsStore
+from app.storage.settings_store import RunHistoryEntry, SettingsStore
 
 
-def _ensure_app() -> QCoreApplication:
-    app = QCoreApplication.instance()
+def _ensure_app() -> QApplication:
+    app = QApplication.instance()
     if app is None:
-        app = QCoreApplication([])
+        app = QApplication([])
     return app
 
 
@@ -34,6 +37,10 @@ def test_settings_store_roundtrip(tmp_path: Path) -> None:
         xmp_sidecar=True,
         set_exif_datetime=True,
         icloudpd_executable="/usr/local/bin/icloudpd",
+        auto_retry_enabled=True,
+        auto_retry_max_attempts=4,
+        auto_retry_base_delay_seconds=12,
+        auto_retry_max_delay_seconds=240,
         language="ko",
         theme="light",
     )
@@ -58,6 +65,10 @@ def test_settings_store_roundtrip(tmp_path: Path) -> None:
     assert loaded.icloudpd_executable is not None
     assert source.icloudpd_executable is not None
     assert Path(loaded.icloudpd_executable) == Path(source.icloudpd_executable)
+    assert loaded.auto_retry_enabled == source.auto_retry_enabled
+    assert loaded.auto_retry_max_attempts == source.auto_retry_max_attempts
+    assert loaded.auto_retry_base_delay_seconds == source.auto_retry_base_delay_seconds
+    assert loaded.auto_retry_max_delay_seconds == source.auto_retry_max_delay_seconds
     assert loaded.language == source.language
     assert loaded.theme == source.theme
 
@@ -68,3 +79,32 @@ def test_password_keyring_hooks_are_noop(tmp_path: Path) -> None:
     store = SettingsStore(file_path=str(config_file))
     store.save_password_to_keyring("user@example.com", "secret")
     assert store.load_password_from_keyring("user@example.com") is None
+
+
+def test_run_history_roundtrip_and_cap(tmp_path: Path) -> None:
+    _ensure_app()
+    config_file = tmp_path / "settings.ini"
+    store = SettingsStore(file_path=str(config_file))
+
+    def make_entry(index: int) -> RunHistoryEntry:
+        return {
+            "started_at": f"2026-01-01T00:00:{index:02d}+00:00",
+            "finished_at": f"2026-01-01T00:01:{index:02d}+00:00",
+            "duration_seconds": 60,
+            "final_state": "done",
+            "reason": "completed",
+            "exit_code": 0,
+            "downloaded_count": index,
+            "error_count": 0,
+            "last_error": "",
+            "retry_attempts": 0,
+            "watch_enabled": False,
+        }
+
+    for index in range(60):
+        store.append_run_history(make_entry(index), max_items=50)
+
+    history = store.load_run_history()
+    assert len(history) == 50
+    assert history[0]["downloaded_count"] == 59
+    assert history[-1]["downloaded_count"] == 10

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -14,7 +15,17 @@ INTERNAL_WORKER_FLAG = "--_run_icloudpd"
 
 def _run_bundled_icloudpd(argv: list[str]) -> int:
     filtered_args = [arg for arg in argv if arg != INTERNAL_WORKER_FLAG]
-    from icloudpd.cli import cli as icloudpd_cli
+    try:
+        module = importlib.import_module("icloudpd.cli")
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "Bundled icloudpd entrypoint is unavailable. "
+            "In development mode, run `pip install -e .` with Python 3.10~3.13."
+        ) from exc
+
+    icloudpd_cli = getattr(module, "cli", None)
+    if icloudpd_cli is None:
+        raise RuntimeError("`icloudpd.cli` module does not expose `cli()` entrypoint.")
 
     sys.argv = ["icloudpd", *filtered_args]
     return icloudpd_cli()

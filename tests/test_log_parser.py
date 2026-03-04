@@ -1,4 +1,4 @@
-from app.core.log_parser import AppState, LogParser, final_state
+from app.core.log_parser import AppState, LogParser, final_state, line_has_error
 
 
 def test_log_parser_counts_downloads_and_errors() -> None:
@@ -9,6 +9,12 @@ def test_log_parser_counts_downloads_and_errors() -> None:
     assert parser.summary.downloaded_count == 1
     assert parser.summary.error_count == 1
     assert "Failed to download" in parser.summary.last_error
+
+
+def test_log_parser_case_insensitive() -> None:
+    parser = LogParser()
+    event = parser.parse_line("2026-01-01 10:00:01 error failed")
+    assert event.error
 
 
 def test_log_parser_detects_mfa_and_webui_url() -> None:
@@ -36,3 +42,15 @@ def test_final_state_rules() -> None:
     assert final_state(1, parser.summary, was_stopped=False) == AppState.ERROR
     assert final_state(1, parser.summary, was_stopped=True) == AppState.IDLE
 
+
+def test_log_parser_transient_error_detection() -> None:
+    parser = LogParser()
+    event = parser.parse_line("2026-01-01 10:00:01 ERROR connection reset by peer")
+    assert event.error
+    assert event.transient_error
+    assert parser.summary.transient_error
+
+
+def test_line_has_error() -> None:
+    assert line_has_error("2026 ERROR bad")
+    assert not line_has_error("2026 INFO all good")

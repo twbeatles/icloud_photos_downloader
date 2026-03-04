@@ -1,11 +1,27 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import TypedDict
 
 from PySide6.QtCore import QSettings
 
 from app.core.config import BackupSettings
 from app.core.i18n import default_language_code
+
+
+class RunHistoryEntry(TypedDict):
+    started_at: str
+    finished_at: str
+    duration_seconds: int
+    final_state: str
+    reason: str
+    exit_code: int
+    downloaded_count: int
+    error_count: int
+    last_error: str
+    retry_attempts: int
+    watch_enabled: bool
 
 
 class SettingsStore:
@@ -47,6 +63,16 @@ class SettingsStore:
             icloudpd_executable=self._get_optional_path_str(
                 "icloudpd_executable", defaults.icloudpd_executable
             ),
+            auto_retry_enabled=self._get_bool("auto_retry_enabled", defaults.auto_retry_enabled),
+            auto_retry_max_attempts=self._get_int(
+                "auto_retry_max_attempts", defaults.auto_retry_max_attempts
+            ),
+            auto_retry_base_delay_seconds=self._get_int(
+                "auto_retry_base_delay_seconds", defaults.auto_retry_base_delay_seconds
+            ),
+            auto_retry_max_delay_seconds=self._get_int(
+                "auto_retry_max_delay_seconds", defaults.auto_retry_max_delay_seconds
+            ),
             language=self._get_str("language", defaults.language),
             theme=self._get_str("theme", defaults.theme),
         )
@@ -67,6 +93,14 @@ class SettingsStore:
         self._settings.setValue("xmp_sidecar", settings.xmp_sidecar)
         self._settings.setValue("set_exif_datetime", settings.set_exif_datetime)
         self._settings.setValue("icloudpd_executable", settings.icloudpd_executable or "")
+        self._settings.setValue("auto_retry_enabled", settings.auto_retry_enabled)
+        self._settings.setValue("auto_retry_max_attempts", settings.auto_retry_max_attempts)
+        self._settings.setValue(
+            "auto_retry_base_delay_seconds", settings.auto_retry_base_delay_seconds
+        )
+        self._settings.setValue(
+            "auto_retry_max_delay_seconds", settings.auto_retry_max_delay_seconds
+        )
         self._settings.setValue("language", settings.language)
         self._settings.setValue("theme", settings.theme)
         self._settings.sync()
@@ -82,6 +116,58 @@ class SettingsStore:
     def load_password_from_keyring(self, _apple_id: str) -> str | None:
         # Placeholder hook for future keyring integration.
         return None
+
+    def load_run_history(self) -> list[RunHistoryEntry]:
+        raw = self._settings.value("run_history", "[]")
+        text = str(raw) if raw is not None else "[]"
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(parsed, list):
+            return []
+
+        output: list[RunHistoryEntry] = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            watch_enabled_raw = item.get("watch_enabled", False)
+            if isinstance(watch_enabled_raw, str):
+                watch_enabled = watch_enabled_raw.strip().lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                    "y",
+                    "on",
+                }
+            else:
+                watch_enabled = bool(watch_enabled_raw)
+            try:
+                output.append(
+                    RunHistoryEntry(
+                        started_at=str(item.get("started_at", "")),
+                        finished_at=str(item.get("finished_at", "")),
+                        duration_seconds=int(item.get("duration_seconds", 0)),
+                        final_state=str(item.get("final_state", "")),
+                        reason=str(item.get("reason", "")),
+                        exit_code=int(item.get("exit_code", -1)),
+                        downloaded_count=int(item.get("downloaded_count", 0)),
+                        error_count=int(item.get("error_count", 0)),
+                        last_error=str(item.get("last_error", "")),
+                        retry_attempts=int(item.get("retry_attempts", 0)),
+                        watch_enabled=watch_enabled,
+                    )
+                )
+            except (TypeError, ValueError):
+                continue
+        return output
+
+    def append_run_history(self, entry: RunHistoryEntry, max_items: int = 50) -> None:
+        history = self.load_run_history()
+        history.insert(0, entry)
+        capped = history[: max(max_items, 1)]
+        self._settings.setValue("run_history", json.dumps(capped, ensure_ascii=False))
+        self._settings.sync()
 
     def _get_str(self, key: str, default: str) -> str:
         value = self._settings.value(key, default)
@@ -120,4 +206,3 @@ class SettingsStore:
         if value is None:
             return default
         return bool(value)
-

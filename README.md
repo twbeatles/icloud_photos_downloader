@@ -17,18 +17,24 @@ MVP는 `QProcess` 기반 subprocess 실행 방식을 사용하며, 인증은 `we
   - 증분 다운로드, 삭제 동기화(auto-delete), 라이브포토, RAW, 최근 N일
   - watch 모드 + interval(분)
   - 고급 옵션(file-match-policy, folder-structure, XMP/EXIF, 외부 실행 파일 경로)
+  - 네트워크 일시 오류용 자동 재시도(기본 OFF, watch 모드에서는 비활성)
+  - 설정 변경 즉시 저장 + 종료 시 재저장
 - 실행 화면
   - Start/Stop
   - 상태 배지(`Idle/Running/Need MFA/Done/Error`)
   - 실시간 로그
   - 다운로드/오류 카운트 + 최근 로그
   - MFA 필요 시 URL 노출 + 외부 브라우저 열기 + (가능 시) 앱 내 WebView
+  - 로그 검색 + 오류만 보기 필터
 - 로그/정보 화면
   - 전체 로그 확인/지우기
+  - 최근 실행 이력(시작/종료/결과/다운로드/오류/재시도)
+  - 로그 검색 + 오류만 보기 필터
   - 요구사항/제한사항/보안 안내
 - 안전장치
   - auto-delete 2단계 확인(옵션 + 경고 모달)
   - 루트/시스템 폴더 경고
+  - 실행 직전 다운로드 폴더 preflight(자동 생성 시도 + 쓰기 가능성 점검)
   - 실행 중 종료 확인 모달 + `terminate -> kill` fallback
 
 ## 3. 프로젝트 구조
@@ -59,6 +65,7 @@ tests/
   test_log_parser.py
   test_settings_store.py
   test_runner_resolution.py
+  test_ui_views.py
 icloudpd-gui.spec
 ```
 
@@ -73,6 +80,7 @@ icloudpd-gui.spec
 4. 시스템 PATH의 `icloudpd`
 
 즉, **배포본은 내부 번들된 `icloudpd`를 기본 사용**하고, 필요 시 외부 실행 파일로 override할 수 있습니다.
+설정된 외부 경로가 유효하지 않으면 경고를 남기고 내부/다음 후보로 자동 fallback합니다.
 
 ## 5. 요구사항
 
@@ -132,6 +140,7 @@ python app/main.py
 | folder preset | `--folder-structure {:%Y/%m/%d} / {:%Y/%m} / none` |
 | XMP sidecar | `--xmp-sidecar` |
 | EXIF datetime | `--set-exif-datetime` |
+| 자동 재시도 | 앱 레벨 동작(일시 네트워크 오류에서만, watch 모드 제외) |
 
 ## 8. i18n (EN/KO)
 
@@ -177,9 +186,10 @@ python -m pytest -q
 현재 테스트 범위:
 
 - 설정 -> CLI 매핑/검증
-- 로그 파싱/상태 판정
-- `QSettings` 저장/복원 + 민감정보 미저장
-- runner 실행 해석 우선순위
+- 로그 파싱/상태 판정 + 일시 네트워크 오류 판정
+- `QSettings` 저장/복원 + 민감정보 미저장 + 실행 이력 저장(cap)
+- runner 실행 해석 우선순위 + override fallback + preflight + 커맨드 마스킹
+- UI 경량 검증(자동 재시도 설정 수집, 로그 필터, 실행 이력 렌더링)
 
 ## 12. 트러블슈팅
 
@@ -202,6 +212,11 @@ python -m pytest -q
 
 - 소스 실행: `pip install -e .`로 `icloudpd` 포함 의존성 설치
 - 또는 설정에서 외부 `icloudpd` 실행 파일 경로 지정
+
+### 외부 `icloudpd` 경로를 지정했는데 실행이 안 되는 것 같음
+
+- 유효하지 않은 경로면 경고 후 내부 번들/다음 후보로 자동 전환됩니다.
+- 로그의 `[warning]` 라인과 상태바 메시지를 확인하세요.
 
 ## 13. AI 세션 인수인계 문서
 

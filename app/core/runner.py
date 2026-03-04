@@ -1,16 +1,29 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import shutil
 import sys
+import uuid
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 from PySide6.QtCore import QObject, QProcess, Signal
 
-from app.core.config import BackupSettings, to_icloudpd_args
+from app.core.config import BackupSettings, normalize_download_dir, to_icloudpd_args
 from app.core.log_parser import AppState, LogParser, RunSummary, final_state
 
 INTERNAL_WORKER_FLAG = "--_run_icloudpd"
+CommandSource = Literal["override", "frozen_internal", "module", "path"]
+
+
+@dataclass(slots=True)
+class CommandResolution:
+    program: str
+    args: list[str]
+    source: CommandSource
+    warnings: list[str] = field(default_factory=list)
 
 
 def _has_icloudpd_module() -> bool:
@@ -20,35 +33,104 @@ def _has_icloudpd_module() -> bool:
         return False
 
 
-def resolve_icloudpd_command(override: str | None) -> tuple[str, list[str]] | None:
+def _is_executable_candidate(path: Path) -> bool:
+    if not path.exists() or not path.is_file():
+        return False
+    if os.name == "nt":
+        return True
+    return os.access(path, os.X_OK)
+
+
+def resolve_icloudpd_command(override: str | None) -> CommandResolution | None:
+    warnings: list[str] = []
     if override:
-        candidate = Path(override).expanduser()
-        if candidate.exists():
-            return str(candidate), []
-        return None
+        candidate = Path(override).expanduser().resolve(strict=False)
+        if _is_executable_candidate(candidate):
+            return CommandResolution(
+                program=str(candidate),
+                args=[],
+                source="override",
+            )
+        warnings.append(
+            f"Configured `icloudpd` executable is invalid and will be ignored: {candidate}"
+        )
 
     # In PyInstaller bundle, reuse the current executable and run internal worker mode.
     if getattr(sys, "frozen", False):
-        return sys.executable, [INTERNAL_WORKER_FLAG]
+        return CommandResolution(
+            program=sys.executable,
+            args=[INTERNAL_WORKER_FLAG],
+            source="frozen_internal",
+            warnings=warnings,
+        )
 
     # Development/source mode: prefer module execution if dependency is installed.
     if _has_icloudpd_module():
-        return sys.executable, ["-m", "icloudpd.cli"]
+        return CommandResolution(
+            program=sys.executable,
+            args=["-m", "icloudpd.cli"],
+            source="module",
+            warnings=warnings,
+        )
 
     path_executable = shutil.which("icloudpd")
     if path_executable:
-        return path_executable, []
+        return CommandResolution(
+            program=path_executable,
+            args=[],
+            source="path",
+            warnings=warnings,
+        )
 
     return None
+
+
+def preflight_download_dir(path: str) -> tuple[bool, str, str | None]:
+    normalized = normalize_download_dir(path)
+    if not normalized:
+        return False, "Download directory is required.", None
+
+    directory = Path(normalized)
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return False, f"Failed to create download directory: {exc}", normalized
+
+    probe_file = directory / f".icloudpd_write_test_{uuid.uuid4().hex}.tmp"
+    try:
+        probe_file.write_text("ok", encoding="utf-8")
+        probe_file.unlink(missing_ok=True)
+    except OSError as exc:
+        return False, f"Download directory is not writable: {exc}", normalized
+
+    return True, "", normalized
+
+
+def reason_from_state(state: AppState) -> str:
+    if state == AppState.IDLE:
+        return "stopped"
+    if state == AppState.DONE:
+        return "completed"
+    return "failed"
+
+
+def format_command_for_log(program: str, args: list[str]) -> str:
+    masked_args = list(args)
+    for index, value in enumerate(masked_args[:-1]):
+        if value == "--username":
+            masked_args[index + 1] = "***"
+    return f"$ {program} {' '.join(masked_args)}"
 
 
 class ICloudPdRunner(QObject):
     state_changed = Signal(object)
     log_line = Signal(str)
     summary_changed = Signal(object)
+    webui_url_available = Signal(str)
     mfa_required = Signal(str)
     finished = Signal(int, str)
     error = Signal(str)
+    runtime_warning = Signal(str)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -72,15 +154,26 @@ class ICloudPdRunner(QObject):
             self.error.emit("A download process is already running.")
             return
 
-        command = resolve_icloudpd_command(settings.icloudpd_executable)
-        if not command:
+        preflight_ok, preflight_message, _normalized_dir = preflight_download_dir(settings.download_dir)
+        if not preflight_ok:
             self._set_state(AppState.ERROR)
-            self.error.emit("`icloudpd` executable not found. Install it or set its path.")
-            self.finished.emit(-1, "executable_not_found")
+            self.error.emit(preflight_message)
+            self.finished.emit(-1, reason_from_state(AppState.ERROR))
             return
 
-        executable, prefix_args = command
-        args = prefix_args + to_icloudpd_args(settings)
+        resolution = resolve_icloudpd_command(settings.icloudpd_executable)
+        if not resolution:
+            self._set_state(AppState.ERROR)
+            self.error.emit("`icloudpd` executable not found. Install it or set its path.")
+            self.finished.emit(-1, reason_from_state(AppState.ERROR))
+            return
+
+        for warning in resolution.warnings:
+            self.runtime_warning.emit(warning)
+            self.log_line.emit(f"[warning] {warning}")
+
+        executable = resolution.program
+        args = resolution.args + to_icloudpd_args(settings)
 
         self._parser.reset()
         self._stdout_buffer = b""
@@ -96,10 +189,10 @@ class ICloudPdRunner(QObject):
         if not self._process.waitForStarted(5000):
             self._set_state(AppState.ERROR)
             self.error.emit("Failed to start `icloudpd` process.")
-            self.finished.emit(-1, "failed_to_start")
+            self.finished.emit(-1, reason_from_state(AppState.ERROR))
             return
 
-        self.log_line.emit(f"$ {executable} {' '.join(args)}")
+        self.log_line.emit(format_command_for_log(executable, args))
         self._set_state(AppState.RUNNING)
 
     def stop(self, timeout_ms: int = 5000) -> None:
@@ -155,7 +248,7 @@ class ICloudPdRunner(QObject):
         self.summary_changed.emit(self._copy_summary())
 
         if event.webui_url:
-            self.mfa_required.emit(event.webui_url)
+            self.webui_url_available.emit(event.webui_url)
 
         if event.mfa_required:
             self._set_state(AppState.NEED_MFA)
@@ -174,12 +267,14 @@ class ICloudPdRunner(QObject):
             error_count=summary.error_count,
             last_message=summary.last_message,
             last_error=summary.last_error,
+            transient_error=summary.transient_error,
         )
 
     def _on_finished(self, exit_code: int, _exit_status: QProcess.ExitStatus) -> None:
         self._flush_buffers()
-        reason = "stopped" if self._stop_requested else "completed" if exit_code == 0 else "failed"
-        self._set_state(final_state(exit_code, self._parser.summary, self._stop_requested))
+        result_state = final_state(exit_code, self._parser.summary, self._stop_requested)
+        reason = reason_from_state(result_state)
+        self._set_state(result_state)
         self.summary_changed.emit(self._copy_summary())
         self.finished.emit(exit_code, reason)
         self._stop_requested = False
@@ -195,3 +290,11 @@ class ICloudPdRunner(QObject):
             return
         self._state = state
         self.state_changed.emit(state)
+
+    @property
+    def summary(self) -> RunSummary:
+        return self._copy_summary()
+
+    @property
+    def state(self) -> AppState:
+        return self._state

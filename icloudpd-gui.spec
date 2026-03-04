@@ -10,6 +10,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 APP_ENTRY = PROJECT_ROOT / "app" / "main.py"
 I18N_DIR = PROJECT_ROOT / "app" / "i18n"
 
+
+def _optional_submodules(module_name: str) -> list[str]:
+    try:
+        return collect_submodules(module_name)
+    except Exception:
+        return []
+
 datas = [(str(I18N_DIR), "app/i18n")]
 datas += collect_data_files("icloudpd", includes=["server/templates/*", "server/static/**/*"])
 
@@ -17,6 +24,8 @@ hiddenimports = (
     collect_submodules("icloudpd")
     + collect_submodules("pyicloud_ipd")
     + collect_submodules("foundation")
+    + _optional_submodules("PySide6.QtWebEngineWidgets")
+    + _optional_submodules("PySide6.QtWebEngineCore")
 )
 
 a = Analysis(

@@ -14,6 +14,8 @@
     <message><source>Run finished successfully.</source><translation>Run finished successfully.</translation></message>
     <message><source>Run stopped by user.</source><translation>Run stopped by user.</translation></message>
     <message><source>Run finished with error (exit code {0}).</source><translation>Run finished with error (exit code {0}).</translation></message>
+    <message><source>Retrying download in this session (attempt {0}/{1}).</source><translation>Retrying download in this session (attempt {0}/{1}).</translation></message>
+    <message><source>Transient network issue detected. Retrying in {0} seconds...</source><translation>Transient network issue detected. Retrying in {0} seconds...</translation></message>
     <message><source>Runner Error</source><translation>Runner Error</translation></message>
     <message><source>MFA</source><translation>MFA</translation></message>
     <message><source>No authentication URL is available yet.</source><translation>No authentication URL is available yet.</translation></message>
@@ -36,11 +38,19 @@
     <message><source>Unsupported folder structure preset.</source><translation>Unsupported folder structure preset.</translation></message>
     <message><source>Unsupported theme.</source><translation>Unsupported theme.</translation></message>
     <message><source>Unsupported language.</source><translation>Unsupported language.</translation></message>
+    <message><source>Auto-retry max attempts must be at least 1.</source><translation>Auto-retry max attempts must be at least 1.</translation></message>
+    <message><source>Auto-retry base delay must be at least 1 second.</source><translation>Auto-retry base delay must be at least 1 second.</translation></message>
+    <message><source>Auto-retry max delay must be at least 1 second.</source><translation>Auto-retry max delay must be at least 1 second.</translation></message>
+    <message><source>Auto-retry max delay must be greater than or equal to base delay.</source><translation>Auto-retry max delay must be greater than or equal to base delay.</translation></message>
     <message><source>Auto-delete requires explicit risk acknowledgment.</source><translation>Auto-delete requires explicit risk acknowledgment.</translation></message>
     <message><source>Selected download path looks unsafe (root/system directory).</source><translation>Selected download path looks unsafe (root/system directory).</translation></message>
     <message><source>Auto-delete removes local files that were deleted in iCloud.</source><translation>Auto-delete removes local files that were deleted in iCloud.</translation></message>
+    <message><source>A download process is already running.</source><translation>A download process is already running.</translation></message>
     <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` executable not found. Install it or set its path.</translation></message>
     <message><source>Failed to start `icloudpd` process.</source><translation>Failed to start `icloudpd` process.</translation></message>
+    <message><source>Configured `icloudpd` executable is invalid and will be ignored: {0}</source><translation>Configured `icloudpd` executable is invalid and will be ignored: {0}</translation></message>
+    <message><source>Failed to create download directory: {0}</source><translation>Failed to create download directory: {0}</translation></message>
+    <message><source>Download directory is not writable: {0}</source><translation>Download directory is not writable: {0}</translation></message>
     <message><source>Process error: {0}</source><translation>Process error: {0}</translation></message>
   </context>
   <context>
@@ -62,6 +72,10 @@
     <message><source>Folder Structure</source><translation>Folder Structure</translation></message>
     <message><source>Enable XMP Sidecar</source><translation>Enable XMP Sidecar</translation></message>
     <message><source>Set EXIF DateTime</source><translation>Set EXIF DateTime</translation></message>
+    <message><source>Enable Auto Retry For Transient Network Errors</source><translation>Enable Auto Retry For Transient Network Errors</translation></message>
+    <message><source>Auto Retry Max Attempts</source><translation>Auto Retry Max Attempts</translation></message>
+    <message><source>Auto Retry Base Delay (seconds)</source><translation>Auto Retry Base Delay (seconds)</translation></message>
+    <message><source>Auto Retry Max Delay (seconds)</source><translation>Auto Retry Max Delay (seconds)</translation></message>
     <message><source>icloudpd Executable (optional)</source><translation>icloudpd Executable (optional)</translation></message>
     <message><source>Language</source><translation>Language</translation></message>
     <message><source>Theme</source><translation>Theme</translation></message>
@@ -84,6 +98,8 @@
     <message><source>Open</source><translation>Open</translation></message>
     <message><source>Open In App</source><translation>Open In App</translation></message>
     <message><source>Live Logs</source><translation>Live Logs</translation></message>
+    <message><source>Search logs</source><translation>Search logs</translation></message>
+    <message><source>Errors Only</source><translation>Errors Only</translation></message>
     <message><source>Idle</source><translation>Idle</translation></message>
     <message><source>Running</source><translation>Running</translation></message>
     <message><source>Need MFA</source><translation>Need MFA</translation></message>
@@ -94,6 +110,9 @@
     <name>LogsView</name>
     <message><source>Logs</source><translation>Logs</translation></message>
     <message><source>Process Output</source><translation>Process Output</translation></message>
+    <message><source>Recent Runs</source><translation>Recent Runs</translation></message>
+    <message><source>Search logs</source><translation>Search logs</translation></message>
+    <message><source>Errors Only</source><translation>Errors Only</translation></message>
     <message><source>Clear</source><translation>Clear</translation></message>
   </context>
   <context>

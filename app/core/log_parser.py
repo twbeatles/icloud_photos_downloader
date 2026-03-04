@@ -7,12 +7,31 @@ from enum import Enum
 DEFAULT_WEBUI_URL = "http://127.0.0.1:8080/"
 
 _MFA_PATTERNS = (
-    "Two-factor authentication is required",
-    "Two-step authentication is required",
+    re.compile(r"two-factor authentication is required", re.IGNORECASE),
+    re.compile(r"two-step authentication is required", re.IGNORECASE),
 )
-_WEBUI_START_PATTERN = "Starting web server for WebUI authentication..."
-_DONE_PATTERN = re.compile(r"All .* have been downloaded")
-_ERROR_PATTERN = re.compile(r"\bERROR\b")
+_WEBUI_START_PATTERNS = (
+    re.compile(r"starting web server for webui authentication", re.IGNORECASE),
+)
+_DONE_PATTERNS = (
+    re.compile(r"all .* have been downloaded", re.IGNORECASE),
+)
+_DOWNLOADED_PATTERNS = (
+    re.compile(r"\bdownloaded\s+\S+", re.IGNORECASE),
+)
+_ERROR_PATTERNS = (
+    re.compile(r"\berror\b", re.IGNORECASE),
+)
+_TRANSIENT_ERROR_PATTERNS = (
+    re.compile(r"timeout|timed out", re.IGNORECASE),
+    re.compile(r"connection reset", re.IGNORECASE),
+    re.compile(r"connection refused", re.IGNORECASE),
+    re.compile(r"temporary failure", re.IGNORECASE),
+    re.compile(r"http\s*5\d\d", re.IGNORECASE),
+    re.compile(r"service unavailable", re.IGNORECASE),
+    re.compile(r"gateway timeout", re.IGNORECASE),
+    re.compile(r"network is unreachable", re.IGNORECASE),
+)
 
 
 class AppState(str, Enum):
@@ -29,6 +48,7 @@ class RunSummary:
     error_count: int = 0
     last_message: str = ""
     last_error: str = ""
+    transient_error: bool = False
 
 
 @dataclass(slots=True)
@@ -38,6 +58,7 @@ class LogEvent:
     webui_url: str | None = None
     done: bool = False
     error: bool = False
+    transient_error: bool = False
 
 
 class LogParser:
@@ -57,26 +78,34 @@ class LogParser:
 
         self.summary.last_message = stripped
 
-        if "Downloaded " in stripped:
+        if any(pattern.search(stripped) for pattern in _DOWNLOADED_PATTERNS):
             self.summary.downloaded_count += 1
 
-        if _ERROR_PATTERN.search(stripped):
+        if any(pattern.search(stripped) for pattern in _ERROR_PATTERNS):
             event.error = True
             self.summary.error_count += 1
             self.summary.last_error = stripped
 
-        if _WEBUI_START_PATTERN in stripped:
+        if any(pattern.search(stripped) for pattern in _TRANSIENT_ERROR_PATTERNS):
+            event.transient_error = True
+            self.summary.transient_error = True
+
+        if any(pattern.search(stripped) for pattern in _WEBUI_START_PATTERNS):
             self.webui_url = DEFAULT_WEBUI_URL
             event.webui_url = self.webui_url
 
-        if any(pattern in stripped for pattern in _MFA_PATTERNS):
+        if any(pattern.search(stripped) for pattern in _MFA_PATTERNS):
             event.mfa_required = True
             event.webui_url = self.webui_url or DEFAULT_WEBUI_URL
 
-        if _DONE_PATTERN.search(stripped):
+        if any(pattern.search(stripped) for pattern in _DONE_PATTERNS):
             event.done = True
 
         return event
+
+
+def line_has_error(line: str) -> bool:
+    return any(pattern.search(line) for pattern in _ERROR_PATTERNS)
 
 
 def final_state(exit_code: int, summary: RunSummary, was_stopped: bool) -> AppState:
@@ -85,4 +114,3 @@ def final_state(exit_code: int, summary: RunSummary, was_stopped: bool) -> AppSt
     if exit_code == 0 and summary.error_count == 0:
         return AppState.DONE
     return AppState.ERROR
-

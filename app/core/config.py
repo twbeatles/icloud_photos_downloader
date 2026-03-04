@@ -46,16 +46,33 @@ class BackupSettings:
     xmp_sidecar: bool = False
     set_exif_datetime: bool = False
     icloudpd_executable: str | None = None
+    auto_retry_enabled: bool = False
+    auto_retry_max_attempts: int = 3
+    auto_retry_base_delay_seconds: int = 10
+    auto_retry_max_delay_seconds: int = 300
     language: str = "en"
     theme: str = "dark"
 
 
+def normalize_download_dir(path: str) -> str:
+    stripped = path.strip()
+    if not stripped:
+        return ""
+
+    expanded = Path(stripped).expanduser()
+    try:
+        return str(expanded.resolve(strict=False))
+    except OSError:
+        return str(expanded)
+
+
 def to_icloudpd_args(settings: BackupSettings) -> list[str]:
+    normalized_download_dir = normalize_download_dir(settings.download_dir)
     args: list[str] = [
         "--username",
         settings.apple_id.strip(),
         "--directory",
-        str(Path(settings.download_dir)),
+        normalized_download_dir,
         "--password-provider",
         "webui",
         "--mfa-provider",
@@ -126,6 +143,38 @@ def validate_settings(settings: BackupSettings) -> list[ValidationIssue]:
     if settings.language not in LANGUAGES:
         issues.append(ValidationIssue("language", "Unsupported language."))
 
+    if settings.auto_retry_max_attempts < 1:
+        issues.append(
+            ValidationIssue(
+                "auto_retry_max_attempts",
+                "Auto-retry max attempts must be at least 1.",
+            )
+        )
+
+    if settings.auto_retry_base_delay_seconds < 1:
+        issues.append(
+            ValidationIssue(
+                "auto_retry_base_delay_seconds",
+                "Auto-retry base delay must be at least 1 second.",
+            )
+        )
+
+    if settings.auto_retry_max_delay_seconds < 1:
+        issues.append(
+            ValidationIssue(
+                "auto_retry_max_delay_seconds",
+                "Auto-retry max delay must be at least 1 second.",
+            )
+        )
+
+    if settings.auto_retry_max_delay_seconds < settings.auto_retry_base_delay_seconds:
+        issues.append(
+            ValidationIssue(
+                "auto_retry_max_delay_seconds",
+                "Auto-retry max delay must be greater than or equal to base delay.",
+            )
+        )
+
     if settings.auto_delete and not settings.auto_delete_acknowledged:
         issues.append(
             ValidationIssue(
@@ -134,7 +183,8 @@ def validate_settings(settings: BackupSettings) -> list[ValidationIssue]:
             )
         )
 
-    if settings.download_dir.strip() and is_unsafe_download_dir(Path(settings.download_dir)):
+    normalized_download_dir = normalize_download_dir(settings.download_dir)
+    if normalized_download_dir and is_unsafe_download_dir(Path(normalized_download_dir)):
         issues.append(
             ValidationIssue(
                 "download_dir",
@@ -216,4 +266,3 @@ def _system_unsafe_paths() -> list[Path]:
         Path("/usr"),
         Path("/var"),
     ]
-

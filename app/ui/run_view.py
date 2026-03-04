@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -13,7 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.core.log_parser import AppState, RunSummary
+from app.core.log_parser import AppState, RunSummary, line_has_error
 
 
 class RunView(QWidget):
@@ -25,6 +26,8 @@ class RunView(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._current_state = AppState.IDLE
+        self._lines: list[str] = []
+        self._max_lines = 5000
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(16)
@@ -102,11 +105,21 @@ class RunView(QWidget):
         log_layout.setSpacing(12)
 
         self.log_title = QLabel()
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(8)
+        self.search_edit = QLineEdit()
+        self.search_edit.textChanged.connect(self._rerender_logs)
+        self.error_only_checkbox = QCheckBox()
+        self.error_only_checkbox.toggled.connect(self._rerender_logs)
+        filter_row.addWidget(self.search_edit, 1)
+        filter_row.addWidget(self.error_only_checkbox)
+
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
 
         log_layout.addWidget(self.log_title)
+        log_layout.addLayout(filter_row)
         log_layout.addWidget(self.log_text, 1)
         root.addWidget(log_card, 1)
 
@@ -150,9 +163,16 @@ class RunView(QWidget):
         return self.mfa_url_edit.text().strip()
 
     def append_log(self, line: str) -> None:
-        self.log_text.append(line)
+        self._lines.append(line)
+        if len(self._lines) > self._max_lines:
+            self._lines = self._lines[-self._max_lines :]
+            self._rerender_logs()
+            return
+        if self._matches_filter(line):
+            self.log_text.append(line)
 
     def clear_log(self) -> None:
+        self._lines.clear()
         self.log_text.clear()
 
     def set_webview_available(self, available: bool) -> None:
@@ -169,4 +189,18 @@ class RunView(QWidget):
         self.open_mfa_button.setText(self.tr("Open"))
         self.open_webview_button.setText(self.tr("Open In App"))
         self.log_title.setText(self.tr("Live Logs"))
+        self.search_edit.setPlaceholderText(self.tr("Search logs"))
+        self.error_only_checkbox.setText(self.tr("Errors Only"))
         self.set_state(self._current_state)
+
+    def _matches_filter(self, line: str) -> bool:
+        query = self.search_edit.text().strip().lower()
+        if query and query not in line.lower():
+            return False
+        if self.error_only_checkbox.isChecked() and not line_has_error(line):
+            return False
+        return True
+
+    def _rerender_logs(self, *_args: object) -> None:
+        filtered = [line for line in self._lines if self._matches_filter(line)]
+        self.log_text.setPlainText("\n".join(filtered))

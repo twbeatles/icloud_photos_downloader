@@ -14,6 +14,8 @@
     <message><source>Run finished successfully.</source><translation>실행이 정상적으로 완료되었습니다.</translation></message>
     <message><source>Run stopped by user.</source><translation>사용자에 의해 실행이 중지되었습니다.</translation></message>
     <message><source>Run finished with error (exit code {0}).</source><translation>오류로 실행이 종료되었습니다 (exit code {0}).</translation></message>
+    <message><source>Retrying download in this session (attempt {0}/{1}).</source><translation>같은 세션에서 다운로드를 재시도합니다 (시도 {0}/{1}).</translation></message>
+    <message><source>Transient network issue detected. Retrying in {0} seconds...</source><translation>일시적인 네트워크 문제가 감지되어 {0}초 후 재시도합니다...</translation></message>
     <message><source>Runner Error</source><translation>실행기 오류</translation></message>
     <message><source>MFA</source><translation>MFA</translation></message>
     <message><source>No authentication URL is available yet.</source><translation>아직 인증 URL이 없습니다.</translation></message>
@@ -36,11 +38,19 @@
     <message><source>Unsupported folder structure preset.</source><translation>지원하지 않는 폴더 구조 프리셋입니다.</translation></message>
     <message><source>Unsupported theme.</source><translation>지원하지 않는 테마입니다.</translation></message>
     <message><source>Unsupported language.</source><translation>지원하지 않는 언어입니다.</translation></message>
+    <message><source>Auto-retry max attempts must be at least 1.</source><translation>자동 재시도 최대 횟수는 최소 1 이상이어야 합니다.</translation></message>
+    <message><source>Auto-retry base delay must be at least 1 second.</source><translation>자동 재시도 기본 지연은 최소 1초 이상이어야 합니다.</translation></message>
+    <message><source>Auto-retry max delay must be at least 1 second.</source><translation>자동 재시도 최대 지연은 최소 1초 이상이어야 합니다.</translation></message>
+    <message><source>Auto-retry max delay must be greater than or equal to base delay.</source><translation>자동 재시도 최대 지연은 기본 지연보다 크거나 같아야 합니다.</translation></message>
     <message><source>Auto-delete requires explicit risk acknowledgment.</source><translation>Auto-delete 사용 시 위험 동의가 필요합니다.</translation></message>
     <message><source>Selected download path looks unsafe (root/system directory).</source><translation>선택한 다운로드 경로가 위험해 보입니다 (루트/시스템 폴더).</translation></message>
     <message><source>Auto-delete removes local files that were deleted in iCloud.</source><translation>Auto-delete는 iCloud에서 삭제된 파일을 로컬에서도 삭제합니다.</translation></message>
+    <message><source>A download process is already running.</source><translation>이미 다운로드 프로세스가 실행 중입니다.</translation></message>
     <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` 실행 파일을 찾을 수 없습니다. 설치하거나 경로를 지정하세요.</translation></message>
     <message><source>Failed to start `icloudpd` process.</source><translation>`icloudpd` 프로세스를 시작하지 못했습니다.</translation></message>
+    <message><source>Configured `icloudpd` executable is invalid and will be ignored: {0}</source><translation>설정된 `icloudpd` 실행 파일 경로가 유효하지 않아 무시됩니다: {0}</translation></message>
+    <message><source>Failed to create download directory: {0}</source><translation>다운로드 폴더를 생성하지 못했습니다: {0}</translation></message>
+    <message><source>Download directory is not writable: {0}</source><translation>다운로드 폴더에 쓰기 권한이 없습니다: {0}</translation></message>
     <message><source>Process error: {0}</source><translation>프로세스 오류: {0}</translation></message>
   </context>
   <context>
@@ -62,6 +72,10 @@
     <message><source>Folder Structure</source><translation>폴더 구조</translation></message>
     <message><source>Enable XMP Sidecar</source><translation>XMP Sidecar 사용</translation></message>
     <message><source>Set EXIF DateTime</source><translation>EXIF DateTime 설정</translation></message>
+    <message><source>Enable Auto Retry For Transient Network Errors</source><translation>일시적 네트워크 오류 시 자동 재시도 사용</translation></message>
+    <message><source>Auto Retry Max Attempts</source><translation>자동 재시도 최대 횟수</translation></message>
+    <message><source>Auto Retry Base Delay (seconds)</source><translation>자동 재시도 기본 지연 (초)</translation></message>
+    <message><source>Auto Retry Max Delay (seconds)</source><translation>자동 재시도 최대 지연 (초)</translation></message>
     <message><source>icloudpd Executable (optional)</source><translation>icloudpd 실행 파일 (선택)</translation></message>
     <message><source>Language</source><translation>언어</translation></message>
     <message><source>Theme</source><translation>테마</translation></message>
@@ -84,6 +98,8 @@
     <message><source>Open</source><translation>열기</translation></message>
     <message><source>Open In App</source><translation>앱에서 열기</translation></message>
     <message><source>Live Logs</source><translation>실시간 로그</translation></message>
+    <message><source>Search logs</source><translation>로그 검색</translation></message>
+    <message><source>Errors Only</source><translation>오류만 보기</translation></message>
     <message><source>Idle</source><translation>대기</translation></message>
     <message><source>Running</source><translation>실행 중</translation></message>
     <message><source>Need MFA</source><translation>MFA 필요</translation></message>
@@ -94,6 +110,9 @@
     <name>LogsView</name>
     <message><source>Logs</source><translation>로그</translation></message>
     <message><source>Process Output</source><translation>프로세스 출력</translation></message>
+    <message><source>Recent Runs</source><translation>최근 실행 이력</translation></message>
+    <message><source>Search logs</source><translation>로그 검색</translation></message>
+    <message><source>Errors Only</source><translation>오류만 보기</translation></message>
     <message><source>Clear</source><translation>지우기</translation></message>
   </context>
   <context>
