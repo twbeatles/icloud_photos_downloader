@@ -46,6 +46,7 @@
     <message><source>Selected download path looks unsafe (root/system directory).</source><translation>Selected download path looks unsafe (root/system directory).</translation></message>
     <message><source>Auto-delete removes local files that were deleted in iCloud.</source><translation>Auto-delete removes local files that were deleted in iCloud.</translation></message>
     <message><source>A download process is already running.</source><translation>A download process is already running.</translation></message>
+    <message><source>Bundled icloudpd entrypoint is unavailable. Install dependencies (pip install -e .) or run with --bootstrap-icloudpd.</source><translation>Bundled icloudpd entrypoint is unavailable. Install dependencies (pip install -e .) or run with --bootstrap-icloudpd.</translation></message>
     <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` executable not found. Install it or set its path.</translation></message>
     <message><source>Failed to start `icloudpd` process.</source><translation>Failed to start `icloudpd` process.</translation></message>
     <message><source>Configured `icloudpd` executable is invalid and will be ignored: {0}</source><translation>Configured `icloudpd` executable is invalid and will be ignored: {0}</translation></message>
@@ -120,7 +121,9 @@
     <message><source>Information</source><translation>Information</translation></message>
     <message><source>## Requirements</source><translation>## Requirements</translation></message>
     <message><source>- Packaged app includes `icloudpd` internally (no separate install required).</source><translation>- Packaged app includes `icloudpd` internally (no separate install required).</translation></message>
+    <message><source>- Runtime `icloudpd` version: {0}</source><translation>- Runtime `icloudpd` version: {0}</translation></message>
     <message><source>- Source/development run requires installing dependencies with `pip install -e .`.</source><translation>- Source/development run requires installing dependencies with `pip install -e .`.</translation></message>
+    <message><source>- If missing in source mode, you can auto-install with `--bootstrap-icloudpd`.</source><translation>- If missing in source mode, you can auto-install with `--bootstrap-icloudpd`.</translation></message>
     <message><source>- You can still override with an external `icloudpd` executable in settings.</source><translation>- You can still override with an external `icloudpd` executable in settings.</translation></message>
     <message><source>- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication.</source><translation>- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication.</translation></message>
     <message><source>## Important Limits</source><translation>## Important Limits</translation></message>
@@ -129,5 +132,6 @@
     <message><source>## Security</source><translation>## Security</translation></message>
     <message><source>- This GUI does **not** save Apple passwords or MFA codes.</source><translation>- This GUI does **not** save Apple passwords or MFA codes.</translation></message>
     <message><source>- A future keyring integration hook is prepared but disabled in MVP.</source><translation>- A future keyring integration hook is prepared but disabled in MVP.</translation></message>
+    <message><source>unknown</source><translation>unknown</translation></message>
   </context>
 </TS>

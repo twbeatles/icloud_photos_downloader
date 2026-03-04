@@ -10,7 +10,10 @@ if __package__ in (None, ""):
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
+from app.core.icloudpd_runtime import ensure_icloudpd_runtime
+
 INTERNAL_WORKER_FLAG = "--_run_icloudpd"
+BOOTSTRAP_ICLOUDPD_FLAG = "--bootstrap-icloudpd"
 
 
 def _run_bundled_icloudpd(argv: list[str]) -> int:
@@ -31,24 +34,33 @@ def _run_bundled_icloudpd(argv: list[str]) -> int:
     return icloudpd_cli()
 
 
-def _run_gui() -> int:
+def _run_gui(auto_bootstrap: bool = False) -> int:
     from PySide6.QtWidgets import QApplication
 
     from app.ui.main_window import MainWindow
 
+    startup_warning: str | None = None
+    ok, message = ensure_icloudpd_runtime(auto_bootstrap=auto_bootstrap)
+    if not ok:
+        startup_warning = message
+
     app = QApplication(sys.argv)
     app.setOrganizationName("icloudpd")
     app.setApplicationName("icloudpd-gui")
-    window = MainWindow()
+    window = MainWindow(startup_warning=startup_warning)
     window.show()
     return app.exec()
 
 
 def main() -> int:
-    args = sys.argv[1:]
+    raw_args = sys.argv[1:]
+    auto_bootstrap = BOOTSTRAP_ICLOUDPD_FLAG in raw_args
+    args = [arg for arg in raw_args if arg != BOOTSTRAP_ICLOUDPD_FLAG]
+    sys.argv = [sys.argv[0], *args]
+
     if INTERNAL_WORKER_FLAG in args:
         return _run_bundled_icloudpd(args)
-    return _run_gui()
+    return _run_gui(auto_bootstrap=auto_bootstrap)
 
 
 if __name__ == "__main__":

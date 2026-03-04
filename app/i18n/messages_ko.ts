@@ -46,6 +46,7 @@
     <message><source>Selected download path looks unsafe (root/system directory).</source><translation>선택한 다운로드 경로가 위험해 보입니다 (루트/시스템 폴더).</translation></message>
     <message><source>Auto-delete removes local files that were deleted in iCloud.</source><translation>Auto-delete는 iCloud에서 삭제된 파일을 로컬에서도 삭제합니다.</translation></message>
     <message><source>A download process is already running.</source><translation>이미 다운로드 프로세스가 실행 중입니다.</translation></message>
+    <message><source>Bundled icloudpd entrypoint is unavailable. Install dependencies (pip install -e .) or run with --bootstrap-icloudpd.</source><translation>내장된 icloudpd 엔트리포인트를 사용할 수 없습니다. 의존성을 설치하세요 (pip install -e .) 또는 --bootstrap-icloudpd로 실행하세요.</translation></message>
     <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` 실행 파일을 찾을 수 없습니다. 설치하거나 경로를 지정하세요.</translation></message>
     <message><source>Failed to start `icloudpd` process.</source><translation>`icloudpd` 프로세스를 시작하지 못했습니다.</translation></message>
     <message><source>Configured `icloudpd` executable is invalid and will be ignored: {0}</source><translation>설정된 `icloudpd` 실행 파일 경로가 유효하지 않아 무시됩니다: {0}</translation></message>
@@ -120,7 +121,9 @@
     <message><source>Information</source><translation>정보</translation></message>
     <message><source>## Requirements</source><translation>## 요구사항</translation></message>
     <message><source>- Packaged app includes `icloudpd` internally (no separate install required).</source><translation>- 패키징된 앱은 `icloudpd`를 내부에 포함하므로 별도 설치가 필요 없습니다.</translation></message>
+    <message><source>- Runtime `icloudpd` version: {0}</source><translation>- 실행 환경 `icloudpd` 버전: {0}</translation></message>
     <message><source>- Source/development run requires installing dependencies with `pip install -e .`.</source><translation>- 소스/개발 실행은 `pip install -e .`로 의존성 설치가 필요합니다.</translation></message>
+    <message><source>- If missing in source mode, you can auto-install with `--bootstrap-icloudpd`.</source><translation>- 소스 모드에서 누락된 경우 `--bootstrap-icloudpd`로 자동 설치할 수 있습니다.</translation></message>
     <message><source>- You can still override with an external `icloudpd` executable in settings.</source><translation>- 설정에서 외부 `icloudpd` 실행 파일로 재정의할 수도 있습니다.</translation></message>
     <message><source>- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication.</source><translation>- WebUI 인증을 위해 `http://127.0.0.1:8080/` 로컬 웹 접근이 필요합니다.</translation></message>
     <message><source>## Important Limits</source><translation>## 중요한 제한사항</translation></message>
@@ -129,5 +132,6 @@
     <message><source>## Security</source><translation>## 보안</translation></message>
     <message><source>- This GUI does **not** save Apple passwords or MFA codes.</source><translation>- 이 GUI는 Apple 비밀번호나 MFA 코드를 **저장하지 않습니다**.</translation></message>
     <message><source>- A future keyring integration hook is prepared but disabled in MVP.</source><translation>- 향후 keyring 연동 훅은 준비되어 있으나 MVP에서는 비활성화되어 있습니다.</translation></message>
+    <message><source>unknown</source><translation>알 수 없음</translation></message>
   </context>
 </TS>

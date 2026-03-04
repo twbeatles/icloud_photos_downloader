@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -19,6 +19,8 @@ def _optional_submodules(module_name: str) -> list[str]:
 
 datas = [(str(I18N_DIR), "app/i18n")]
 datas += collect_data_files("icloudpd", includes=["server/templates/*", "server/static/**/*"])
+# Keep package metadata so runtime version discovery works in bundled app.
+datas += copy_metadata("icloudpd")
 
 hiddenimports = (
     collect_submodules("icloudpd")

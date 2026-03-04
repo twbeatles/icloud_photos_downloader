@@ -14,6 +14,7 @@
 - 실행 동선: 설정 -> 실행 -> 로그/상태 -> 결과 요약.
 - watch 모드 interval은 분 입력, 내부 변환은 초 단위.
 - 설정 변경은 실행과 무관하게 즉시 저장되어야 하며, 종료 시점에도 재저장해야 한다.
+- 스핀/콤보 입력은 휠 스크롤로 값이 의도치 않게 변경되지 않아야 한다.
 
 ### A-3. 안전장치
 - auto-delete는 2단계 확인(체크 + 경고 모달).
@@ -36,6 +37,9 @@
   4. PATH의 `icloudpd`
 - 외부 실행 파일 경로가 유효하지 않으면 경고 후 fallback해야 한다(즉시 실패 금지).
 - 실행 커맨드 로그는 `--username` 값을 마스킹해야 한다.
+- 앱 시작 시 `icloudpd.cli` 엔트리포인트 self-check를 수행해야 한다.
+- 개발 모드에서 `--bootstrap-icloudpd` 옵션으로 누락 의존성 자동 설치를 지원할 수 있다.
+- 런타임 누락 시 앱은 시작을 유지하고 경고 메시지로 안내해야 한다(하드 블로킹 지양).
 
 ### B-2. 상태/로그 모델
 - 상태: `idle`, `running`, `need_mfa`, `done`, `error`.
@@ -56,11 +60,12 @@
 ### B-4. i18n
 - `QTranslator` + `messages_en/ko.ts(.qm)`.
 - 기본 언어는 시스템 로캘(ko면 한국어).
-- 사용자 선택 언어는 `QSettings`로 복원되어야 하며 강제 덮어쓰기 금지.
+- 사용자 선택 전에는 시스템 로캘을 사용하고, 명시 선택 이후에는 선택 언어를 `QSettings`에서 복원한다.
 
 ### B-5. 빌드/배포
 - `scripts/build.py`에서 `.ts -> .qm` 후 PyInstaller onefile.
 - `icloudpd-gui.spec`는 번들 리소스/hidden import를 포함해야 한다.
+- 빌드 후 실행 파일의 내부 워커 smoke test(`--_run_icloudpd --help`)를 수행해야 한다.
 - 산출물은 `dist/` 기준.
 
 ## C. 변경 검증 프로토콜

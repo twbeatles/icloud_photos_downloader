@@ -45,6 +45,7 @@ def test_settings_store_roundtrip(tmp_path: Path) -> None:
         theme="light",
     )
 
+    store.save_language_selection(source.language)
     store.save(source)
     loaded = store.load()
 
@@ -79,6 +80,39 @@ def test_password_keyring_hooks_are_noop(tmp_path: Path) -> None:
     store = SettingsStore(file_path=str(config_file))
     store.save_password_to_keyring("user@example.com", "secret")
     assert store.load_password_from_keyring("user@example.com") is None
+
+
+def test_language_follows_system_locale_when_not_user_selected(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    _ensure_app()
+    config_file = tmp_path / "settings.ini"
+    store = SettingsStore(file_path=str(config_file))
+
+    monkeypatch.setattr("app.storage.settings_store.default_language_code", lambda: "ko")
+    source = BackupSettings(
+        apple_id="user@example.com",
+        download_dir=str(tmp_path / "photos"),
+        language="en",
+    )
+    store.save(source)
+    loaded = store.load()
+    assert loaded.language == "ko"
+
+
+def test_language_uses_user_selection_when_marked(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    _ensure_app()
+    config_file = tmp_path / "settings.ini"
+    store = SettingsStore(file_path=str(config_file))
+
+    monkeypatch.setattr("app.storage.settings_store.default_language_code", lambda: "ko")
+    source = BackupSettings(
+        apple_id="user@example.com",
+        download_dir=str(tmp_path / "photos"),
+        language="en",
+    )
+    store.save(source)
+    store.save_language_selection("en")
+    loaded = store.load()
+    assert loaded.language == "en"
 
 
 def test_run_history_roundtrip_and_cap(tmp_path: Path) -> None:

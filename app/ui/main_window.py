@@ -41,7 +41,7 @@ except ImportError:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, startup_warning: str | None = None) -> None:
         super().__init__()
         self._store = SettingsStore()
         self._settings = self._store.load()
@@ -50,6 +50,7 @@ class MainWindow(QMainWindow):
         self._state = AppState.IDLE
         self._webview_window: QMainWindow | None = None
         self._webview: QWebEngineView | None = None
+        self._startup_warning = startup_warning
         self._retry_attempts = 0
         self._session_started_at: datetime | None = None
         self._run_history: list[RunHistoryEntry] = []
@@ -71,6 +72,7 @@ class MainWindow(QMainWindow):
         self._retranslate_ui()
         self.run_view.set_webview_available(HAS_WEBENGINE)
         self.resize(1200, 820)
+        self._apply_startup_warning()
 
     def _build_ui(self) -> None:
         self.setStatusBar(QStatusBar(self))
@@ -403,6 +405,7 @@ class MainWindow(QMainWindow):
     def _on_language_selected(self, language: str) -> None:
         self._i18n.set_language(language)
         self._settings.language = language
+        self._store.save_language_selection(language)
         self._persist_current_settings()
 
     def _on_language_changed(self, _language: str) -> None:
@@ -508,6 +511,15 @@ class MainWindow(QMainWindow):
     def _translate_runtime_message(self, message: str) -> str:
         if message == "A download process is already running.":
             return self.tr("A download process is already running.")
+        if (
+            message
+            == "Bundled icloudpd entrypoint is unavailable. "
+            "Install dependencies (pip install -e .) or run with --bootstrap-icloudpd."
+        ):
+            return self.tr(
+                "Bundled icloudpd entrypoint is unavailable. Install dependencies (pip install -e .) "
+                "or run with --bootstrap-icloudpd."
+            )
         if message == "`icloudpd` executable not found. Install it or set its path.":
             return self.tr("`icloudpd` executable not found. Install it or set its path.")
         if message == "Failed to start `icloudpd` process.":
@@ -527,3 +539,12 @@ class MainWindow(QMainWindow):
             detail = message.replace("Process error: ", "", 1)
             return self.tr("Process error: {0}").format(detail)
         return message
+
+    def _apply_startup_warning(self) -> None:
+        if not self._startup_warning:
+            return
+        translated = self._translate_runtime_message(self._startup_warning)
+        line = f"[warning] {translated}"
+        self._on_runner_log_line(line)
+        self.statusBar().showMessage(translated, 12000)
+        self._startup_warning = None

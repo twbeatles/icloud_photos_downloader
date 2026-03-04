@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QFrame, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
+from app.core.icloudpd_runtime import get_icloudpd_version
+
 
 class InfoView(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -29,10 +31,13 @@ class InfoView(QWidget):
 
     def retranslate_ui(self) -> None:
         self.title_label.setText(self.tr("Information"))
+        runtime_version = get_icloudpd_version() or self.tr("unknown")
         lines = [
             self.tr("## Requirements"),
             self.tr("- Packaged app includes `icloudpd` internally (no separate install required)."),
+            self.tr("- Runtime `icloudpd` version: {0}").format(runtime_version),
             self.tr("- Source/development run requires installing dependencies with `pip install -e .`."),
+            self.tr("- If missing in source mode, you can auto-install with `--bootstrap-icloudpd`."),
             self.tr("- You can still override with an external `icloudpd` executable in settings."),
             self.tr("- Local web access to `http://127.0.0.1:8080/` is needed for WebUI authentication."),
             "",

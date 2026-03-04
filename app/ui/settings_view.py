@@ -5,7 +5,6 @@ from pathlib import Path
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFileDialog,
     QFormLayout,
     QFrame,
@@ -14,13 +13,13 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSpinBox,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from app.core.config import BackupSettings
+from app.ui.no_wheel_input import NoWheelComboBox, NoWheelSpinBox
 
 
 class SettingsView(QWidget):
@@ -80,7 +79,7 @@ class SettingsView(QWidget):
         basic_layout.addRow(self.raw_include_checkbox)
 
         self.recent_days_label = QLabel()
-        self.recent_days_spin = QSpinBox()
+        self.recent_days_spin = NoWheelSpinBox()
         self.recent_days_spin.setRange(0, 36500)
         basic_layout.addRow(self.recent_days_label, self.recent_days_spin)
 
@@ -89,7 +88,7 @@ class SettingsView(QWidget):
         basic_layout.addRow(self.watch_checkbox)
 
         self.watch_interval_label = QLabel()
-        self.watch_interval_spin = QSpinBox()
+        self.watch_interval_spin = NoWheelSpinBox()
         self.watch_interval_spin.setRange(1, 10080)
         self.watch_interval_spin.setValue(60)
         self.watch_interval_spin.setEnabled(False)
@@ -112,13 +111,13 @@ class SettingsView(QWidget):
         advanced_layout.setSpacing(12)
 
         self.file_match_label = QLabel()
-        self.file_match_combo = QComboBox()
+        self.file_match_combo = NoWheelComboBox()
         self.file_match_combo.addItem("name-size-dedup-with-suffix", "name-size-dedup-with-suffix")
         self.file_match_combo.addItem("name-id7", "name-id7")
         advanced_layout.addRow(self.file_match_label, self.file_match_combo)
 
         self.folder_preset_label = QLabel()
-        self.folder_preset_combo = QComboBox()
+        self.folder_preset_combo = NoWheelComboBox()
         self.folder_preset_combo.addItem("YYYY/MM/DD", "ymd")
         self.folder_preset_combo.addItem("YYYY/MM", "ym")
         self.folder_preset_combo.addItem("none", "none")
@@ -135,21 +134,21 @@ class SettingsView(QWidget):
         advanced_layout.addRow(self.auto_retry_checkbox)
 
         self.auto_retry_attempts_label = QLabel()
-        self.auto_retry_attempts_spin = QSpinBox()
+        self.auto_retry_attempts_spin = NoWheelSpinBox()
         self.auto_retry_attempts_spin.setRange(1, 20)
         self.auto_retry_attempts_spin.setValue(3)
         self.auto_retry_attempts_spin.setEnabled(False)
         advanced_layout.addRow(self.auto_retry_attempts_label, self.auto_retry_attempts_spin)
 
         self.auto_retry_base_delay_label = QLabel()
-        self.auto_retry_base_delay_spin = QSpinBox()
+        self.auto_retry_base_delay_spin = NoWheelSpinBox()
         self.auto_retry_base_delay_spin.setRange(1, 3600)
         self.auto_retry_base_delay_spin.setValue(10)
         self.auto_retry_base_delay_spin.setEnabled(False)
         advanced_layout.addRow(self.auto_retry_base_delay_label, self.auto_retry_base_delay_spin)
 
         self.auto_retry_max_delay_label = QLabel()
-        self.auto_retry_max_delay_spin = QSpinBox()
+        self.auto_retry_max_delay_spin = NoWheelSpinBox()
         self.auto_retry_max_delay_spin.setRange(1, 86400)
         self.auto_retry_max_delay_spin.setValue(300)
         self.auto_retry_max_delay_spin.setEnabled(False)
@@ -166,14 +165,14 @@ class SettingsView(QWidget):
         advanced_layout.addRow(self.icloudpd_exec_label, self._wrap_layout(exec_row))
 
         self.language_label = QLabel()
-        self.language_combo = QComboBox()
+        self.language_combo = NoWheelComboBox()
         self.language_combo.addItem("English", "en")
         self.language_combo.addItem("한국어", "ko")
         self.language_combo.currentIndexChanged.connect(self._emit_language_changed)
         advanced_layout.addRow(self.language_label, self.language_combo)
 
         self.theme_label = QLabel()
-        self.theme_combo = QComboBox()
+        self.theme_combo = NoWheelComboBox()
         self.theme_combo.addItem("Dark", "dark")
         self.theme_combo.addItem("Light", "light")
         self.theme_combo.currentIndexChanged.connect(self._emit_theme_changed)
@@ -296,12 +295,12 @@ class SettingsView(QWidget):
         self._set_combo_by_data(self.file_match_combo, self.file_match_combo.currentData())
         self._set_combo_by_data(self.folder_preset_combo, self.folder_preset_combo.currentData())
 
-    def _set_combo_by_data(self, combo: QComboBox, value: str | None) -> None:
+    def _set_combo_by_data(self, combo: NoWheelComboBox, value: str | None) -> None:
         index = combo.findData(value)
         if index >= 0:
             combo.setCurrentIndex(index)
 
-    def _set_combo_text(self, combo: QComboBox, index: int, text: str) -> None:
+    def _set_combo_text(self, combo: NoWheelComboBox, index: int, text: str) -> None:
         if index < combo.count():
             combo.setItemText(index, text)
 

@@ -38,6 +38,9 @@ class SettingsStore:
 
     def load(self) -> BackupSettings:
         defaults = BackupSettings(language=default_language_code())
+        language_user_selected = self._get_bool("language_user_selected", False)
+        loaded_language = self._get_str("language", defaults.language)
+        effective_language = loaded_language if language_user_selected else defaults.language
 
         return BackupSettings(
             apple_id=self._get_str("apple_id", defaults.apple_id),
@@ -73,7 +76,7 @@ class SettingsStore:
             auto_retry_max_delay_seconds=self._get_int(
                 "auto_retry_max_delay_seconds", defaults.auto_retry_max_delay_seconds
             ),
-            language=self._get_str("language", defaults.language),
+            language=effective_language,
             theme=self._get_str("theme", defaults.theme),
         )
 
@@ -102,7 +105,14 @@ class SettingsStore:
             "auto_retry_max_delay_seconds", settings.auto_retry_max_delay_seconds
         )
         self._settings.setValue("language", settings.language)
+        if self._settings.value("language_user_selected", None) is None:
+            self._settings.setValue("language_user_selected", False)
         self._settings.setValue("theme", settings.theme)
+        self._settings.sync()
+
+    def save_language_selection(self, language: str) -> None:
+        self._settings.setValue("language", language)
+        self._settings.setValue("language_user_selected", True)
         self._settings.sync()
 
     def clear(self) -> None:

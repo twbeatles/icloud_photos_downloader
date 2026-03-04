@@ -1,17 +1,69 @@
 from __future__ import annotations
 
+import locale
+import os
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication, QLocale, QObject, QTranslator, Signal
 from PySide6.QtWidgets import QApplication
 
 
+def _normalize_locale_tag(value: str) -> str:
+    return value.replace("_", "-").strip().lower()
+
+
+def _is_korean_tag(value: str) -> bool:
+    return _normalize_locale_tag(value).startswith("ko")
+
+
+def _qt_locale_tags() -> list[str]:
+    system_locale = QLocale.system()
+    tags: list[str] = []
+
+    for candidate in (system_locale.bcp47Name(), system_locale.name()):
+        if candidate:
+            tags.append(str(candidate))
+
+    try:
+        tags.extend(str(value) for value in system_locale.uiLanguages())
+    except Exception:
+        pass
+
+    return tags
+
+
+def _windows_ui_locale_tag() -> str | None:
+    if os.name != "nt":
+        return None
+
+    try:
+        import ctypes
+
+        language_id = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+        mapped = locale.windows_locale.get(language_id)
+        return str(mapped) if mapped else None
+    except Exception:
+        return None
+
+
+def detect_system_language_code() -> str:
+    for tag in _qt_locale_tags():
+        if _is_korean_tag(tag):
+            return "ko"
+
+    windows_ui_tag = _windows_ui_locale_tag()
+    if windows_ui_tag and _is_korean_tag(windows_ui_tag):
+        return "ko"
+
+    return "en"
+
+
 def is_system_korean() -> bool:
-    return QLocale.system().name().lower().startswith("ko")
+    return detect_system_language_code() == "ko"
 
 
 def default_language_code() -> str:
-    return "ko" if is_system_korean() else "en"
+    return detect_system_language_code()
 
 
 class I18nManager(QObject):

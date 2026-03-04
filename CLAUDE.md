@@ -46,6 +46,10 @@
   - stdout/stderr 라인 스트리밍 + signal 발행
   - 커맨드 로그 마스킹(`--username`)
   - final state 기준 완료 reason 일원화
+- `app/core/icloudpd_runtime.py`
+  - `icloudpd` 엔트리포인트/버전 확인
+  - 개발 모드 자동 설치(`--bootstrap-icloudpd`) 지원
+  - 누락 시 앱 시작은 유지하고 경고로 안내(시작 차단 팝업 지양)
 - `app/core/log_parser.py`
   - MFA/에러/완료 키워드 파싱(case-insensitive)
   - 일시 네트워크 오류(transient) 판정
@@ -57,15 +61,17 @@
   - `QSettings` 기반 저장/복원
   - 민감정보 저장 금지, keyring 훅만 존재
   - 실행 이력(JSON 배열, 최신순 cap) 저장/로드
+  - 언어는 명시 선택 전까지 시스템 로캘 우선, 명시 선택 후 선택값 복원
 - `app/ui/*.py`
   - 설정 즉시 저장 + 종료 시 재저장
   - 자동 재시도 옵션 UI
   - Run/Logs 검색 + 오류 필터
   - Logs 최근 실행 이력 표시
+  - 스핀/콤보 휠 입력으로 인한 값 변경 방지
 - `icloudpd-gui.spec`
   - 번들 데이터/hidden import 포함
 - `scripts/build.py`
-  - 번역 컴파일 + onefile 빌드
+  - 번역 컴파일 + onefile 빌드 + 번들 워커 smoke test
 
 ## 5) 개발 표준 커맨드
 

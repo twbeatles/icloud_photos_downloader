@@ -19,6 +19,7 @@ MVP는 `QProcess` 기반 subprocess 실행 방식을 사용하며, 인증은 `we
   - 고급 옵션(file-match-policy, folder-structure, XMP/EXIF, 외부 실행 파일 경로)
   - 네트워크 일시 오류용 자동 재시도(기본 OFF, watch 모드에서는 비활성)
   - 설정 변경 즉시 저장 + 종료 시 재저장
+  - 스핀/콤보 입력은 휠 스크롤로 값이 바뀌지 않도록 보호
 - 실행 화면
   - Start/Stop
   - 상태 배지(`Idle/Running/Need MFA/Done/Error`)
@@ -47,6 +48,7 @@ app/
     runner.py
     log_parser.py
     i18n.py
+    icloudpd_runtime.py
   storage/
     settings_store.py
   ui/
@@ -55,6 +57,7 @@ app/
     run_view.py
     logs_view.py
     info_view.py
+    no_wheel_input.py
   i18n/
     messages_en.ts / messages_en.qm
     messages_ko.ts / messages_ko.qm
@@ -62,6 +65,8 @@ scripts/
   build.py
 tests/
   test_config.py
+  test_i18n.py
+  test_icloudpd_runtime.py
   test_log_parser.py
   test_settings_store.py
   test_runner_resolution.py
@@ -81,6 +86,8 @@ icloudpd-gui.spec
 
 즉, **배포본은 내부 번들된 `icloudpd`를 기본 사용**하고, 필요 시 외부 실행 파일로 override할 수 있습니다.
 설정된 외부 경로가 유효하지 않으면 경고를 남기고 내부/다음 후보로 자동 fallback합니다.
+앱 시작 시 내부 `icloudpd.cli` 엔트리포인트를 self-check하며, 누락 시 앱은 계속 실행되고 경고 로그/상태 메시지로 안내합니다.
+시작 경고는 실행 차단 팝업 대신 상태바/로그로 표시됩니다.
 
 ## 5. 요구사항
 
@@ -117,6 +124,12 @@ icloudpd-gui
 python -m app.main
 ```
 
+개발 환경에서 `icloudpd`가 누락된 경우 자동 설치 모드:
+
+```bash
+python -m app.main --bootstrap-icloudpd
+```
+
 직접 파일 실행도 가능:
 
 ```bash
@@ -147,7 +160,8 @@ python app/main.py
 - Qt `QTranslator` + `.ts/.qm` 기반
 - 지원 언어: `en`, `ko`
 - 기본값: 시스템 로캘이 한국어면 `ko`, 그 외 `en`
-- 사용자 언어 선택은 `QSettings`에 저장되어 다음 실행 시 복원
+- 사용자가 언어를 명시 선택하기 전까지 시스템 로캘을 따릅니다.
+- 사용자 언어 선택 이후에는 `QSettings`에서 선택값을 복원합니다.
 
 ## 9. 보안 및 제한사항
 
@@ -168,10 +182,17 @@ python app/main.py
 python scripts/build.py
 ```
 
+smoke test를 건너뛰고 빌드만 하려면:
+
+```bash
+python scripts/build.py --skip-smoke-test
+```
+
 빌드 순서:
 
 1. `app/i18n/*.ts -> *.qm` 컴파일
 2. `icloudpd-gui.spec`로 PyInstaller onefile 빌드
+3. 산출 실행 파일로 내부 워커 smoke test(`--_run_icloudpd --help`) 수행
 
 결과물:
 
@@ -186,6 +207,8 @@ python -m pytest -q
 현재 테스트 범위:
 
 - 설정 -> CLI 매핑/검증
+- 시스템 로캘 기반 기본 언어 판정 + 사용자 언어 고정 복원
+- `icloudpd` 런타임 self-check/bootstrap 동작
 - 로그 파싱/상태 판정 + 일시 네트워크 오류 판정
 - `QSettings` 저장/복원 + 민감정보 미저장 + 실행 이력 저장(cap)
 - runner 실행 해석 우선순위 + override fallback + preflight + 커맨드 마스킹
@@ -212,6 +235,7 @@ python -m pytest -q
 
 - 소스 실행: `pip install -e .`로 `icloudpd` 포함 의존성 설치
 - 또는 설정에서 외부 `icloudpd` 실행 파일 경로 지정
+- 개발 실행에서 빠르게 복구하려면 `python -m app.main --bootstrap-icloudpd` 사용 가능
 
 ### 외부 `icloudpd` 경로를 지정했는데 실행이 안 되는 것 같음
 
