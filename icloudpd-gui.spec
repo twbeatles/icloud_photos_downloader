@@ -17,6 +17,7 @@ def _optional_submodules(module_name: str) -> list[str]:
     except Exception:
         return []
 
+# Keep .qm assets bundled so runtime warnings/new UI strings are translated.
 datas = [(str(I18N_DIR), "app/i18n")]
 datas += collect_data_files("icloudpd", includes=["server/templates/*", "server/static/**/*"])
 # Keep package metadata so runtime version discovery works in bundled app.
@@ -26,6 +27,7 @@ hiddenimports = (
     collect_submodules("icloudpd")
     + collect_submodules("pyicloud_ipd")
     + collect_submodules("foundation")
+    # Optional dependency: enable in-app MFA webview when QtWebEngine is available.
     + _optional_submodules("PySide6.QtWebEngineWidgets")
     + _optional_submodules("PySide6.QtWebEngineCore")
 )

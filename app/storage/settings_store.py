@@ -22,6 +22,7 @@ class RunHistoryEntry(TypedDict):
     last_error: str
     retry_attempts: int
     watch_enabled: bool
+    command_source: str
 
 
 class SettingsStore:
@@ -166,6 +167,7 @@ class SettingsStore:
                         last_error=str(item.get("last_error", "")),
                         retry_attempts=int(item.get("retry_attempts", 0)),
                         watch_enabled=watch_enabled,
+                        command_source=str(item.get("command_source", "unknown")),
                     )
                 )
             except (TypeError, ValueError):

@@ -17,7 +17,7 @@ MVP는 `QProcess` 기반 subprocess 실행 방식을 사용하며, 인증은 `we
   - 증분 다운로드, 삭제 동기화(auto-delete), 라이브포토, RAW, 최근 N일
   - watch 모드 + interval(분)
   - 고급 옵션(file-match-policy, folder-structure, XMP/EXIF, 외부 실행 파일 경로)
-  - 네트워크 일시 오류용 자동 재시도(기본 OFF, watch 모드에서는 비활성)
+  - 네트워크 일시 오류용 자동 재시도(기본 OFF, watch 모드 ON 시 UI 비활성 + 안내 문구)
   - 설정 변경 즉시 저장 + 종료 시 재저장
   - 스핀/콤보 입력은 휠 스크롤로 값이 바뀌지 않도록 보호
 - 실행 화면
@@ -25,11 +25,12 @@ MVP는 `QProcess` 기반 subprocess 실행 방식을 사용하며, 인증은 `we
   - 상태 배지(`Idle/Running/Need MFA/Done/Error`)
   - 실시간 로그
   - 다운로드/오류 카운트 + 최근 로그
+  - 자동 재시도 대기 상태(`Retry pending`) 표시 + `Cancel Retry`
   - MFA 필요 시 URL 노출 + 외부 브라우저 열기 + (가능 시) 앱 내 WebView
   - 로그 검색 + 오류만 보기 필터
 - 로그/정보 화면
   - 전체 로그 확인/지우기
-  - 최근 실행 이력(시작/종료/결과/다운로드/오류/재시도)
+  - 최근 실행 이력(시작/종료/결과/다운로드/오류/재시도/실행 소스)
   - 로그 검색 + 오류만 보기 필터
   - 요구사항/제한사항/보안 안내
 - 안전장치
@@ -68,6 +69,7 @@ tests/
   test_i18n.py
   test_icloudpd_runtime.py
   test_log_parser.py
+  test_runner_lifecycle.py
   test_settings_store.py
   test_runner_resolution.py
   test_ui_views.py
@@ -97,6 +99,7 @@ icloudpd-gui.spec
 
 주의:
 - Python 3.14는 현재 지원 범위 밖입니다. 3.10~3.13 사용을 권장합니다.
+- 3.14+에서도 앱은 시작되지만, 시작 시 경고가 표시되며 일부 기능이 불안정할 수 있습니다.
 
 ## 6. 설치 및 실행
 
@@ -212,7 +215,8 @@ python -m pytest -q
 - 로그 파싱/상태 판정 + 일시 네트워크 오류 판정
 - `QSettings` 저장/복원 + 민감정보 미저장 + 실행 이력 저장(cap)
 - runner 실행 해석 우선순위 + override fallback + preflight + 커맨드 마스킹
-- UI 경량 검증(자동 재시도 설정 수집, 로그 필터, 실행 이력 렌더링)
+- runner 라이프사이클(start timeout, terminate->kill, finished 중복 방지, MFA 복귀)
+- UI 경량 검증(자동 재시도 설정 수집/Watch 비활성, 로그 필터, retry pending 취소, 실행 이력 렌더링)
 
 ## 12. 트러블슈팅
 
@@ -230,6 +234,12 @@ python -m pytest -q
 
 - 구버전 API 호환 처리(`setup_theme`/`load_stylesheet`)가 코드에 반영되어 있습니다.
 - 여전히 발생하면 설치된 패키지 버전 충돌 여부를 확인하세요.
+
+### Python 3.14+ 경고가 보임
+
+- 지원 범위는 3.10~3.13입니다.
+- 3.14+에서 앱은 실행되지만 상태바/로그에 경고가 표시되며 안정성이 보장되지 않습니다.
+- 가능한 한 3.10~3.13 환경으로 전환하세요.
 
 ### `icloudpd`를 찾을 수 없음
 

@@ -9,12 +9,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-from PySide6.QtCore import QObject, QProcess, Signal
+from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
 from app.core.config import BackupSettings, normalize_download_dir, to_icloudpd_args
 from app.core.log_parser import AppState, LogParser, RunSummary, final_state
 
 INTERNAL_WORKER_FLAG = "--_run_icloudpd"
+DEFAULT_START_TIMEOUT_MS = 5000
+DEFAULT_STOP_TIMEOUT_MS = 5000
 CommandSource = Literal["override", "frozen_internal", "module", "path"]
 
 
@@ -33,11 +35,19 @@ def _has_icloudpd_module() -> bool:
         return False
 
 
+def _windows_pathexts() -> set[str]:
+    raw = os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD")
+    items = [item.strip().lower() for item in raw.split(";") if item.strip()]
+    normalized = {item if item.startswith(".") else f".{item}" for item in items}
+    return normalized or {".com", ".exe", ".bat", ".cmd"}
+
+
 def _is_executable_candidate(path: Path) -> bool:
     if not path.exists() or not path.is_file():
         return False
     if os.name == "nt":
-        return True
+        suffix = path.suffix.lower()
+        return bool(suffix) and suffix in _windows_pathexts()
     return os.access(path, os.X_OK)
 
 
@@ -137,20 +147,32 @@ class ICloudPdRunner(QObject):
         self._process = QProcess(self)
         self._process.readyReadStandardOutput.connect(self._on_stdout)
         self._process.readyReadStandardError.connect(self._on_stderr)
+        self._process.started.connect(self._on_started)
         self._process.finished.connect(self._on_finished)
         self._process.errorOccurred.connect(self._on_error)
         self._process.setProcessChannelMode(QProcess.ProcessChannelMode.SeparateChannels)
 
+        self._start_timeout_timer = QTimer(self)
+        self._start_timeout_timer.setSingleShot(True)
+        self._start_timeout_timer.timeout.connect(self._on_start_timeout)
+
+        self._stop_kill_timer = QTimer(self)
+        self._stop_kill_timer.setSingleShot(True)
+        self._stop_kill_timer.timeout.connect(self._on_stop_kill_timeout)
+
         self._stdout_buffer = b""
         self._stderr_buffer = b""
         self._stop_requested = False
+        self._start_pending = False
+        self._finished_emitted = False
         self._state = AppState.IDLE
         self._parser = LogParser()
         self._active_program: str | None = None
         self._active_args: list[str] = []
+        self._active_source: CommandSource | None = None
 
     def start(self, settings: BackupSettings) -> None:
-        if self.is_running():
+        if self.is_running() or self._start_pending:
             self.error.emit("A download process is already running.")
             return
 
@@ -158,14 +180,14 @@ class ICloudPdRunner(QObject):
         if not preflight_ok:
             self._set_state(AppState.ERROR)
             self.error.emit(preflight_message)
-            self.finished.emit(-1, reason_from_state(AppState.ERROR))
+            self._emit_finished_once(-1, reason_from_state(AppState.ERROR))
             return
 
         resolution = resolve_icloudpd_command(settings.icloudpd_executable)
         if not resolution:
             self._set_state(AppState.ERROR)
             self.error.emit("`icloudpd` executable not found. Install it or set its path.")
-            self.finished.emit(-1, reason_from_state(AppState.ERROR))
+            self._emit_finished_once(-1, reason_from_state(AppState.ERROR))
             return
 
         for warning in resolution.warnings:
@@ -179,30 +201,32 @@ class ICloudPdRunner(QObject):
         self._stdout_buffer = b""
         self._stderr_buffer = b""
         self._stop_requested = False
+        self._start_pending = True
+        self._finished_emitted = False
         self._active_program = executable
         self._active_args = list(args)
+        self._active_source = resolution.source
 
         self._process.setProgram(executable)
         self._process.setArguments(args)
         self._process.start()
+        self._start_timeout_timer.start(DEFAULT_START_TIMEOUT_MS)
 
-        if not self._process.waitForStarted(5000):
-            self._set_state(AppState.ERROR)
-            self.error.emit("Failed to start `icloudpd` process.")
-            self.finished.emit(-1, reason_from_state(AppState.ERROR))
-            return
-
-        self.log_line.emit(format_command_for_log(executable, args))
-        self._set_state(AppState.RUNNING)
-
-    def stop(self, timeout_ms: int = 5000) -> None:
-        if not self.is_running():
+    def stop(self, timeout_ms: int = DEFAULT_STOP_TIMEOUT_MS) -> None:
+        if not self.is_running() and not self._start_pending:
             return
         self._stop_requested = True
+        self._start_pending = False
+        self._start_timeout_timer.stop()
+
+        if self._process.state() == QProcess.ProcessState.NotRunning:
+            return
+
         self._process.terminate()
-        if not self._process.waitForFinished(timeout_ms):
+        if timeout_ms <= 0:
             self._process.kill()
-            self._process.waitForFinished(2000)
+            return
+        self._stop_kill_timer.start(timeout_ms)
 
     def is_running(self) -> bool:
         return self._process.state() != QProcess.ProcessState.NotRunning
@@ -211,6 +235,36 @@ class ICloudPdRunner(QObject):
         if not self._active_program:
             return ""
         return f"{self._active_program} {' '.join(self._active_args)}"
+
+    @property
+    def command_source(self) -> str:
+        return self._active_source or "unknown"
+
+    def _on_started(self) -> None:
+        if not self._start_pending:
+            return
+        self._start_pending = False
+        self._start_timeout_timer.stop()
+        if self._active_program is not None:
+            self.log_line.emit(format_command_for_log(self._active_program, self._active_args))
+        self._set_state(AppState.RUNNING)
+
+    def _on_start_timeout(self) -> None:
+        if not self._start_pending:
+            return
+        self._start_pending = False
+        if self._process.state() != QProcess.ProcessState.NotRunning:
+            self._process.kill()
+        self._set_state(AppState.ERROR)
+        self.error.emit("Failed to start `icloudpd` process.")
+        self._emit_finished_once(-1, reason_from_state(AppState.ERROR))
+
+    def _on_stop_kill_timeout(self) -> None:
+        if self._process.state() == QProcess.ProcessState.NotRunning:
+            return
+        self.runtime_warning.emit("Process did not exit after terminate(). Forcing kill().")
+        self.log_line.emit("[warning] Process did not exit after terminate(). Forcing kill().")
+        self._process.kill()
 
     def _on_stdout(self) -> None:
         chunk = bytes(self._process.readAllStandardOutput())
@@ -254,6 +308,14 @@ class ICloudPdRunner(QObject):
             self._set_state(AppState.NEED_MFA)
             self.mfa_required.emit(event.webui_url or "http://127.0.0.1:8080/")
 
+        if (
+            event.activity_detected
+            and self._state == AppState.NEED_MFA
+            and not event.mfa_required
+            and not event.error
+        ):
+            self._set_state(AppState.RUNNING)
+
         if event.error:
             self._set_state(AppState.ERROR)
 
@@ -271,19 +333,42 @@ class ICloudPdRunner(QObject):
         )
 
     def _on_finished(self, exit_code: int, _exit_status: QProcess.ExitStatus) -> None:
+        self._start_timeout_timer.stop()
+        self._stop_kill_timer.stop()
+        self._start_pending = False
         self._flush_buffers()
+
+        if self._finished_emitted:
+            self._stop_requested = False
+            return
+
         result_state = final_state(exit_code, self._parser.summary, self._stop_requested)
         reason = reason_from_state(result_state)
         self._set_state(result_state)
         self.summary_changed.emit(self._copy_summary())
-        self.finished.emit(exit_code, reason)
+        self._emit_finished_once(exit_code, reason)
         self._stop_requested = False
 
     def _on_error(self, process_error: QProcess.ProcessError) -> None:
         if process_error == QProcess.ProcessError.UnknownError:
             return
+
+        if process_error == QProcess.ProcessError.FailedToStart:
+            self._start_timeout_timer.stop()
+            self._start_pending = False
+            self._set_state(AppState.ERROR)
+            self.error.emit("Failed to start `icloudpd` process.")
+            self._emit_finished_once(-1, reason_from_state(AppState.ERROR))
+            return
+
         self._set_state(AppState.ERROR)
         self.error.emit(f"Process error: {process_error.name}")
+
+    def _emit_finished_once(self, exit_code: int, reason: str) -> None:
+        if self._finished_emitted:
+            return
+        self._finished_emitted = True
+        self.finished.emit(exit_code, reason)
 
     def _set_state(self, state: AppState) -> None:
         if self._state == state:

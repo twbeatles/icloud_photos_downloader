@@ -10,7 +10,7 @@ if __package__ in (None, ""):
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
-from app.core.icloudpd_runtime import ensure_icloudpd_runtime
+from app.core.icloudpd_runtime import ensure_icloudpd_runtime, python_version_warning
 
 INTERNAL_WORKER_FLAG = "--_run_icloudpd"
 BOOTSTRAP_ICLOUDPD_FLAG = "--bootstrap-icloudpd"
@@ -39,15 +39,19 @@ def _run_gui(auto_bootstrap: bool = False) -> int:
 
     from app.ui.main_window import MainWindow
 
-    startup_warning: str | None = None
+    startup_warnings: list[str] = []
+    version_warning = python_version_warning()
+    if version_warning:
+        startup_warnings.append(version_warning)
+
     ok, message = ensure_icloudpd_runtime(auto_bootstrap=auto_bootstrap)
     if not ok:
-        startup_warning = message
+        startup_warnings.append(message)
 
     app = QApplication(sys.argv)
     app.setOrganizationName("icloudpd")
     app.setApplicationName("icloudpd-gui")
-    window = MainWindow(startup_warning=startup_warning)
+    window = MainWindow(startup_warnings=startup_warnings)
     window.show()
     return app.exec()
 

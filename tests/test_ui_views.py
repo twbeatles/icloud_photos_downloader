@@ -31,6 +31,17 @@ def test_settings_view_collects_auto_retry_values() -> None:
     assert settings.auto_retry_max_delay_seconds == 300
 
 
+def test_settings_view_disables_auto_retry_controls_in_watch_mode() -> None:
+    _ensure_app()
+    view = SettingsView()
+    view.auto_retry_checkbox.setChecked(True)
+    view.watch_checkbox.setChecked(True)
+
+    assert not view.auto_retry_checkbox.isEnabled()
+    assert not view.auto_retry_attempts_spin.isEnabled()
+    assert not view.auto_retry_watch_hint.isHidden()
+
+
 def test_run_view_filters_error_lines() -> None:
     _ensure_app()
     view = RunView()
@@ -41,6 +52,22 @@ def test_run_view_filters_error_lines() -> None:
     rendered = view.log_text.toPlainText()
     assert "ERROR failed" in rendered
     assert "INFO all good" not in rendered
+
+
+def test_run_view_retry_pending_controls() -> None:
+    _ensure_app()
+    view = RunView()
+    triggered = {"value": False}
+    view.cancel_retry_requested.connect(lambda: triggered.__setitem__("value", True))
+
+    view.set_retry_pending(True, 12)
+    assert not view.retry_pending_label.isHidden()
+    assert "12" in view.retry_pending_label.text()
+    view.cancel_retry_button.click()
+    assert triggered["value"]
+
+    view.clear_retry_pending()
+    assert view.retry_pending_label.isHidden()
 
 
 def test_logs_view_renders_run_history() -> None:
@@ -55,9 +82,11 @@ def test_logs_view_renders_run_history() -> None:
                 "downloaded_count": 10,
                 "error_count": 0,
                 "retry_attempts": 1,
+                "command_source": "module",
             }
         ]
     )
     rendered = view.history_text.toPlainText()
     assert "[done]" in rendered
     assert "downloaded=10" in rendered
+    assert "source=module" in rendered

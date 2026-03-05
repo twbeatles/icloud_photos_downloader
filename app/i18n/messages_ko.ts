@@ -16,6 +16,7 @@
     <message><source>Run finished with error (exit code {0}).</source><translation>오류로 실행이 종료되었습니다 (exit code {0}).</translation></message>
     <message><source>Retrying download in this session (attempt {0}/{1}).</source><translation>같은 세션에서 다운로드를 재시도합니다 (시도 {0}/{1}).</translation></message>
     <message><source>Transient network issue detected. Retrying in {0} seconds...</source><translation>일시적인 네트워크 문제가 감지되어 {0}초 후 재시도합니다...</translation></message>
+    <message><source>Scheduled retry was canceled.</source><translation>예약된 재시도를 취소했습니다.</translation></message>
     <message><source>Runner Error</source><translation>실행기 오류</translation></message>
     <message><source>MFA</source><translation>MFA</translation></message>
     <message><source>No authentication URL is available yet.</source><translation>아직 인증 URL이 없습니다.</translation></message>
@@ -24,6 +25,7 @@
     <message><source>Authentication WebView</source><translation>인증 WebView</translation></message>
     <message><source>Exit</source><translation>종료</translation></message>
     <message><source>A backup is running. Stop it and exit?</source><translation>백업이 실행 중입니다. 중지 후 종료하시겠습니까?</translation></message>
+    <message><source>Stopping backup before exit...</source><translation>종료 전에 백업을 중지하는 중...</translation></message>
     <message><source>Idle</source><translation>대기</translation></message>
     <message><source>Running</source><translation>실행 중</translation></message>
     <message><source>Need MFA</source><translation>MFA 필요</translation></message>
@@ -53,6 +55,8 @@
     <message><source>Failed to create download directory: {0}</source><translation>다운로드 폴더를 생성하지 못했습니다: {0}</translation></message>
     <message><source>Download directory is not writable: {0}</source><translation>다운로드 폴더에 쓰기 권한이 없습니다: {0}</translation></message>
     <message><source>Process error: {0}</source><translation>프로세스 오류: {0}</translation></message>
+    <message><source>Process did not exit after terminate(). Forcing kill().</source><translation>terminate() 후에도 프로세스가 종료되지 않아 kill()을 강제 실행합니다.</translation></message>
+    <message><source>Python {0} is outside the supported range ({1}). The app will continue, but some features may be unstable.</source><translation>Python {0} 버전은 지원 범위({1})를 벗어났습니다. 앱은 계속 실행되지만 일부 기능이 불안정할 수 있습니다.</translation></message>
   </context>
   <context>
     <name>SettingsView</name>
@@ -77,6 +81,7 @@
     <message><source>Auto Retry Max Attempts</source><translation>자동 재시도 최대 횟수</translation></message>
     <message><source>Auto Retry Base Delay (seconds)</source><translation>자동 재시도 기본 지연 (초)</translation></message>
     <message><source>Auto Retry Max Delay (seconds)</source><translation>자동 재시도 최대 지연 (초)</translation></message>
+    <message><source>Auto Retry is unavailable while Watch Mode is enabled.</source><translation>Watch 모드가 활성화되어 자동 재시도를 사용할 수 없습니다.</translation></message>
     <message><source>icloudpd Executable (optional)</source><translation>icloudpd 실행 파일 (선택)</translation></message>
     <message><source>Language</source><translation>언어</translation></message>
     <message><source>Theme</source><translation>테마</translation></message>
@@ -98,6 +103,8 @@
     <message><source>Auth URL</source><translation>인증 URL</translation></message>
     <message><source>Open</source><translation>열기</translation></message>
     <message><source>Open In App</source><translation>앱에서 열기</translation></message>
+    <message><source>Cancel Retry</source><translation>재시도 취소</translation></message>
+    <message><source>Retry pending ({0}s)</source><translation>재시도 대기 중 ({0}초)</translation></message>
     <message><source>Live Logs</source><translation>실시간 로그</translation></message>
     <message><source>Search logs</source><translation>로그 검색</translation></message>
     <message><source>Errors Only</source><translation>오류만 보기</translation></message>

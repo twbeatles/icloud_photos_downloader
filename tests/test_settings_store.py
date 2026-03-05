@@ -133,6 +133,7 @@ def test_run_history_roundtrip_and_cap(tmp_path: Path) -> None:
             "last_error": "",
             "retry_attempts": 0,
             "watch_enabled": False,
+            "command_source": "module",
         }
 
     for index in range(60):
@@ -142,3 +143,21 @@ def test_run_history_roundtrip_and_cap(tmp_path: Path) -> None:
     assert len(history) == 50
     assert history[0]["downloaded_count"] == 59
     assert history[-1]["downloaded_count"] == 10
+    assert history[0]["command_source"] == "module"
+
+
+def test_run_history_backward_compatible_without_command_source(tmp_path: Path) -> None:
+    _ensure_app()
+    config_file = tmp_path / "settings.ini"
+    store = SettingsStore(file_path=str(config_file))
+    store._settings.setValue(
+        "run_history",
+        '[{"started_at":"2026-01-01T00:00:00+00:00","finished_at":"2026-01-01T00:01:00+00:00",'
+        '"duration_seconds":60,"final_state":"done","reason":"completed","exit_code":0,'
+        '"downloaded_count":1,"error_count":0,"last_error":"","retry_attempts":0,"watch_enabled":false}]',
+    )
+    store._settings.sync()
+
+    history = store.load_run_history()
+    assert len(history) == 1
+    assert history[0]["command_source"] == "unknown"

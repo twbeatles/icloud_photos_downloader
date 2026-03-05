@@ -122,7 +122,8 @@ class LogsView(QWidget):
         downloaded = int(entry.get("downloaded_count", 0))
         errors = int(entry.get("error_count", 0))
         retries = int(entry.get("retry_attempts", 0))
+        source = str(entry.get("command_source", "unknown"))
         return (
             f"[{result}] {started} -> {finished} | "
-            f"downloaded={downloaded}, errors={errors}, retries={retries}"
+            f"downloaded={downloaded}, errors={errors}, retries={retries}, source={source}"
         )

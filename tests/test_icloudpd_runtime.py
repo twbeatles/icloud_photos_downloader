@@ -51,3 +51,14 @@ def test_ensure_runtime_uses_bootstrap_when_enabled(monkeypatch) -> None:  # typ
     ok, message = runtime.ensure_icloudpd_runtime(auto_bootstrap=True)
     assert ok
     assert message == ""
+
+
+def test_python_version_warning_for_unsupported_version() -> None:
+    warning = runtime.python_version_warning((3, 14))
+    assert warning is not None
+    assert "outside the supported range" in warning
+
+
+def test_python_version_warning_none_for_supported_version() -> None:
+    warning = runtime.python_version_warning((3, 13))
+    assert warning is None

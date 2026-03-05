@@ -43,19 +43,22 @@
 
 ### B-2. 상태/로그 모델
 - 상태: `idle`, `running`, `need_mfa`, `done`, `error`.
-- 로그 파서 키워드 기반 감지:
+- 로그 파서 감지:
   - MFA 문구
   - WebUI 시작 문구 -> `http://127.0.0.1:8080/`
   - 완료 문구
-  - ERROR 라인
+  - ERROR 라인(레벨/실패 구문 기반, 단순 `error` 단어 오탐 지양)
 - 완료 reason/상태 표시는 `final_state` 단일 기준으로 일치해야 한다.
 - 로그 파서는 case-insensitive + 일시 네트워크 오류(transient) 판정을 제공해야 한다.
 - MFA URL 알림과 NEED_MFA 상태 전이는 분리되어야 한다.
+- 인증 이후 activity 라인이 감지되면 `NEED_MFA -> RUNNING` 복귀가 가능해야 한다.
 
 ### B-3. 운영 기능
 - Run/Logs 화면은 로그 검색 + 오류만 보기 필터를 지원해야 한다.
-- 최근 실행 이력(시간/결과/카운트/재시도)을 `QSettings` JSON 배열로 저장하고 최신순 cap(기본 50)을 유지한다.
-- 자동 재시도는 기본 OFF, watch 모드에서는 비활성이며 transient 오류에서만 지수 백오프로 동작한다.
+- 최근 실행 이력(시간/결과/카운트/재시도/실행 소스)을 `QSettings` JSON 배열로 저장하고 최신순 cap(기본 50)을 유지한다.
+- 자동 재시도는 기본 OFF, watch 모드에서는 UI 비활성 처리되며 transient 오류에서만 지수 백오프로 동작한다.
+- 자동 재시도 대기 상태(`retry pending`)를 사용자에게 표시하고 취소 동선을 제공해야 한다.
+- Start/Stop/Close는 UI blocking wait 없이 비동기 흐름으로 동작해야 한다.
 
 ### B-4. i18n
 - `QTranslator` + `messages_en/ko.ts(.qm)`.
@@ -67,6 +70,10 @@
 - `icloudpd-gui.spec`는 번들 리소스/hidden import를 포함해야 한다.
 - 빌드 후 실행 파일의 내부 워커 smoke test(`--_run_icloudpd --help`)를 수행해야 한다.
 - 산출물은 `dist/` 기준.
+
+### B-6. 런타임 경고 정책
+- Python 지원 범위는 `3.10~3.13`이다.
+- 지원 범위 밖(예: 3.14+)에서는 앱 시작을 유지하되, 경고를 상태바/로그에 명확히 노출해야 한다.
 
 ## C. 변경 검증 프로토콜
 
@@ -86,11 +93,14 @@ python -m pytest -q
 - invalid override 경고 + fallback 확인
 - preflight 실패(권한/경로) 메시지 확인
 - 자동 재시도 조건(transient only, watch 제외) 확인
+- watch ON 시 자동 재시도 UI 비활성/안내 문구 확인
+- retry pending 표시/취소 동작 확인
 - Run/Logs 검색 및 오류 필터 확인
-- 최근 실행 이력 누적/최대 보관량 확인
+- 최근 실행 이력 누적/최대 보관량/실행 source 표시 확인
 - EN/KO 즉시 반영
 - 라이트/다크 전환 반영
 - 번들/외부 실행 파일 해석 우선순위 확인
+- Python 3.14+ 경고 노출 확인
 
 ## D. 금지 패턴
 

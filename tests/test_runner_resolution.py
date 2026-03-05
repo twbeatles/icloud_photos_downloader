@@ -13,7 +13,8 @@ from app.core.runner import (
 
 
 def test_resolve_command_prefers_override(tmp_path: Path) -> None:
-    candidate = tmp_path / "icloudpd"
+    candidate_name = "icloudpd.exe" if os.name == "nt" else "icloudpd"
+    candidate = tmp_path / candidate_name
     candidate.write_text("stub", encoding="utf-8")
     if os.name != "nt":
         candidate.chmod(candidate.stat().st_mode | 0o111)
@@ -66,6 +67,24 @@ def test_resolve_command_invalid_override_falls_back(monkeypatch) -> None:  # ty
     monkeypatch.setattr(runner, "_has_icloudpd_module", lambda: False)
     monkeypatch.setattr(runner.shutil, "which", lambda _name: "/usr/bin/icloudpd")
     command = resolve_icloudpd_command("/invalid/path/icloudpd")
+    assert command is not None
+    assert command.source == "path"
+    assert command.warnings
+
+
+def test_resolve_command_windows_override_requires_allowed_extension(
+    monkeypatch, tmp_path: Path
+) -> None:  # type: ignore[no-untyped-def]
+    candidate = tmp_path / "icloudpd"
+    candidate.write_text("stub", encoding="utf-8")
+
+    monkeypatch.setattr(runner.os, "name", "nt")
+    monkeypatch.setenv("PATHEXT", ".EXE;.BAT;.CMD")
+    monkeypatch.setattr(runner.sys, "frozen", False, raising=False)
+    monkeypatch.setattr(runner, "_has_icloudpd_module", lambda: False)
+    monkeypatch.setattr(runner.shutil, "which", lambda _name: "C:\\Program Files\\icloudpd.exe")
+
+    command = resolve_icloudpd_command(str(candidate))
     assert command is not None
     assert command.source == "path"
     assert command.warnings

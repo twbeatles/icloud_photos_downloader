@@ -133,6 +133,11 @@ class SettingsView(QWidget):
         self.auto_retry_checkbox.toggled.connect(self._on_auto_retry_toggled)
         advanced_layout.addRow(self.auto_retry_checkbox)
 
+        self.auto_retry_watch_hint = QLabel()
+        self.auto_retry_watch_hint.setWordWrap(True)
+        self.auto_retry_watch_hint.setVisible(False)
+        advanced_layout.addRow(self.auto_retry_watch_hint)
+
         self.auto_retry_attempts_label = QLabel()
         self.auto_retry_attempts_spin = NoWheelSpinBox()
         self.auto_retry_attempts_spin.setRange(1, 20)
@@ -208,15 +213,13 @@ class SettingsView(QWidget):
         self.xmp_checkbox.setChecked(settings.xmp_sidecar)
         self.exif_checkbox.setChecked(settings.set_exif_datetime)
         self.auto_retry_checkbox.setChecked(settings.auto_retry_enabled)
-        self.auto_retry_attempts_spin.setEnabled(settings.auto_retry_enabled)
-        self.auto_retry_base_delay_spin.setEnabled(settings.auto_retry_enabled)
-        self.auto_retry_max_delay_spin.setEnabled(settings.auto_retry_enabled)
         self.auto_retry_attempts_spin.setValue(settings.auto_retry_max_attempts)
         self.auto_retry_base_delay_spin.setValue(settings.auto_retry_base_delay_seconds)
         self.auto_retry_max_delay_spin.setValue(settings.auto_retry_max_delay_seconds)
         self.icloudpd_exec_edit.setText(settings.icloudpd_executable or "")
         self._set_combo_by_data(self.language_combo, settings.language)
         self._set_combo_by_data(self.theme_combo, settings.theme)
+        self._refresh_auto_retry_controls()
 
         for widget in signal_widgets:
             widget.blockSignals(False)
@@ -285,6 +288,9 @@ class SettingsView(QWidget):
         self.auto_retry_attempts_label.setText(self.tr("Auto Retry Max Attempts"))
         self.auto_retry_base_delay_label.setText(self.tr("Auto Retry Base Delay (seconds)"))
         self.auto_retry_max_delay_label.setText(self.tr("Auto Retry Max Delay (seconds)"))
+        self.auto_retry_watch_hint.setText(
+            self.tr("Auto Retry is unavailable while Watch Mode is enabled.")
+        )
         self.icloudpd_exec_button.setText(self.tr("Browse"))
 
         self._set_combo_text(self.language_combo, 0, "English")
@@ -294,6 +300,7 @@ class SettingsView(QWidget):
 
         self._set_combo_by_data(self.file_match_combo, self.file_match_combo.currentData())
         self._set_combo_by_data(self.folder_preset_combo, self.folder_preset_combo.currentData())
+        self._refresh_auto_retry_controls()
 
     def _set_combo_by_data(self, combo: NoWheelComboBox, value: str | None) -> None:
         index = combo.findData(value)
@@ -314,6 +321,7 @@ class SettingsView(QWidget):
 
     def _on_watch_toggled(self, checked: bool) -> None:
         self.watch_interval_spin.setEnabled(checked)
+        self._refresh_auto_retry_controls()
 
     def _on_advanced_toggled(self, checked: bool) -> None:
         self.advanced_toggle.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
@@ -341,10 +349,19 @@ class SettingsView(QWidget):
         self._emit_settings_changed()
 
     def _on_auto_retry_toggled(self, checked: bool) -> None:
-        self.auto_retry_attempts_spin.setEnabled(checked)
-        self.auto_retry_base_delay_spin.setEnabled(checked)
-        self.auto_retry_max_delay_spin.setEnabled(checked)
+        self._refresh_auto_retry_controls()
         self._emit_settings_changed()
+
+    def _refresh_auto_retry_controls(self) -> None:
+        watch_enabled = self.watch_checkbox.isChecked()
+        retry_checked = self.auto_retry_checkbox.isChecked()
+
+        self.auto_retry_checkbox.setEnabled(not watch_enabled)
+        controls_enabled = retry_checked and not watch_enabled
+        self.auto_retry_attempts_spin.setEnabled(controls_enabled)
+        self.auto_retry_base_delay_spin.setEnabled(controls_enabled)
+        self.auto_retry_max_delay_spin.setEnabled(controls_enabled)
+        self.auto_retry_watch_hint.setVisible(watch_enabled)
 
     def _pick_download_dir(self) -> None:
         selected = QFileDialog.getExistingDirectory(

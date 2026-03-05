@@ -17,6 +17,13 @@ def test_log_parser_case_insensitive() -> None:
     assert event.error
 
 
+def test_log_parser_does_not_flag_informational_error_word() -> None:
+    parser = LogParser()
+    event = parser.parse_line("2026-01-01 10:00:01 INFO previous error count: 0")
+    assert not event.error
+    assert parser.summary.error_count == 0
+
+
 def test_log_parser_detects_mfa_and_webui_url() -> None:
     parser = LogParser()
     event1 = parser.parse_line(
@@ -33,6 +40,15 @@ def test_log_parser_detects_done() -> None:
     parser = LogParser()
     event = parser.parse_line("2026-01-01 10:00:02 INFO All photos and videos have been downloaded")
     assert event.done
+
+
+def test_log_parser_detects_exception_and_failed_patterns() -> None:
+    parser = LogParser()
+    event1 = parser.parse_line("2026-01-01 10:00:01 INFO failed to download photo")
+    event2 = parser.parse_line("2026-01-01 10:00:02 INFO traceback (most recent call last)")
+    assert event1.error
+    assert event2.error
+    assert parser.summary.error_count == 2
 
 
 def test_final_state_rules() -> None:

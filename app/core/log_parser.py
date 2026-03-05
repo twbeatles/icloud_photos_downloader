@@ -19,8 +19,25 @@ _DONE_PATTERNS = (
 _DOWNLOADED_PATTERNS = (
     re.compile(r"\bdownloaded\s+\S+", re.IGNORECASE),
 )
-_ERROR_PATTERNS = (
-    re.compile(r"\berror\b", re.IGNORECASE),
+_ERROR_LEVEL_PATTERNS = (
+    re.compile(
+        r"^(?:\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:[.,]\d+)?\s+)?(?:error|critical|fatal)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"^\S+\s+(?:error|critical|fatal)\b", re.IGNORECASE),
+    re.compile(r"\[(?:error|critical|fatal)\]", re.IGNORECASE),
+    re.compile(r"\b(?:error|critical|fatal)\s*:", re.IGNORECASE),
+)
+_ERROR_PHRASE_PATTERNS = (
+    re.compile(r"\bfailed to\b", re.IGNORECASE),
+    re.compile(r"\btraceback\b", re.IGNORECASE),
+    re.compile(r"\bexception\b", re.IGNORECASE),
+)
+_ACTIVITY_PATTERNS = (
+    re.compile(r"\bauthentication (?:was )?(?:successful|complete)\b", re.IGNORECASE),
+    re.compile(r"\blogged in\b", re.IGNORECASE),
+    re.compile(r"\bprocessing\b", re.IGNORECASE),
+    re.compile(r"\bchecking\b", re.IGNORECASE),
 )
 _TRANSIENT_ERROR_PATTERNS = (
     re.compile(r"timeout|timed out", re.IGNORECASE),
@@ -59,6 +76,7 @@ class LogEvent:
     done: bool = False
     error: bool = False
     transient_error: bool = False
+    activity_detected: bool = False
 
 
 class LogParser:
@@ -80,8 +98,12 @@ class LogParser:
 
         if any(pattern.search(stripped) for pattern in _DOWNLOADED_PATTERNS):
             self.summary.downloaded_count += 1
+            event.activity_detected = True
 
-        if any(pattern.search(stripped) for pattern in _ERROR_PATTERNS):
+        if any(pattern.search(stripped) for pattern in _ACTIVITY_PATTERNS):
+            event.activity_detected = True
+
+        if _is_error_line(stripped):
             event.error = True
             self.summary.error_count += 1
             self.summary.last_error = stripped
@@ -105,7 +127,16 @@ class LogParser:
 
 
 def line_has_error(line: str) -> bool:
-    return any(pattern.search(line) for pattern in _ERROR_PATTERNS)
+    return _is_error_line(line)
+
+
+def _is_error_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if any(pattern.search(stripped) for pattern in _ERROR_LEVEL_PATTERNS):
+        return True
+    return any(pattern.search(stripped) for pattern in _ERROR_PHRASE_PATTERNS)
 
 
 def final_state(exit_code: int, summary: RunSummary, was_stopped: bool) -> AppState:

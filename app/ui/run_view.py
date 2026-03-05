@@ -20,6 +20,7 @@ from app.core.log_parser import AppState, RunSummary, line_has_error
 class RunView(QWidget):
     start_requested = Signal()
     stop_requested = Signal()
+    cancel_retry_requested = Signal()
     open_mfa_url_requested = Signal()
     open_mfa_webview_requested = Signal()
 
@@ -28,6 +29,8 @@ class RunView(QWidget):
         self._current_state = AppState.IDLE
         self._lines: list[str] = []
         self._max_lines = 5000
+        self._retry_pending = False
+        self._retry_delay_seconds = 0
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(16)
@@ -60,6 +63,18 @@ class RunView(QWidget):
         top_row.addStretch(1)
         top_row.addWidget(self.status_badge)
         control_layout.addLayout(top_row)
+
+        retry_row = QHBoxLayout()
+        retry_row.setSpacing(8)
+        self.retry_pending_label = QLabel()
+        self.retry_pending_label.setVisible(False)
+        self.cancel_retry_button = QPushButton()
+        self.cancel_retry_button.clicked.connect(self.cancel_retry_requested.emit)
+        self.cancel_retry_button.setVisible(False)
+        retry_row.addWidget(self.retry_pending_label)
+        retry_row.addStretch(1)
+        retry_row.addWidget(self.cancel_retry_button)
+        control_layout.addLayout(retry_row)
 
         summary_grid = QGridLayout()
         summary_grid.setHorizontalSpacing(16)
@@ -178,6 +193,14 @@ class RunView(QWidget):
     def set_webview_available(self, available: bool) -> None:
         self.open_webview_button.setVisible(available)
 
+    def set_retry_pending(self, pending: bool, delay_seconds: int = 0) -> None:
+        self._retry_pending = pending
+        self._retry_delay_seconds = max(delay_seconds, 0)
+        self._refresh_retry_pending_ui()
+
+    def clear_retry_pending(self) -> None:
+        self.set_retry_pending(False, 0)
+
     def retranslate_ui(self) -> None:
         self.title_label.setText(self.tr("Execution"))
         self.start_button.setText(self.tr("Start"))
@@ -188,10 +211,12 @@ class RunView(QWidget):
         self.mfa_label.setText(self.tr("Auth URL"))
         self.open_mfa_button.setText(self.tr("Open"))
         self.open_webview_button.setText(self.tr("Open In App"))
+        self.cancel_retry_button.setText(self.tr("Cancel Retry"))
         self.log_title.setText(self.tr("Live Logs"))
         self.search_edit.setPlaceholderText(self.tr("Search logs"))
         self.error_only_checkbox.setText(self.tr("Errors Only"))
         self.set_state(self._current_state)
+        self._refresh_retry_pending_ui()
 
     def _matches_filter(self, line: str) -> bool:
         query = self.search_edit.text().strip().lower()
@@ -204,3 +229,15 @@ class RunView(QWidget):
     def _rerender_logs(self, *_args: object) -> None:
         filtered = [line for line in self._lines if self._matches_filter(line)]
         self.log_text.setPlainText("\n".join(filtered))
+
+    def _refresh_retry_pending_ui(self) -> None:
+        if not self._retry_pending:
+            self.retry_pending_label.setVisible(False)
+            self.cancel_retry_button.setVisible(False)
+            return
+
+        self.retry_pending_label.setText(
+            self.tr("Retry pending ({0}s)").format(self._retry_delay_seconds)
+        )
+        self.retry_pending_label.setVisible(True)
+        self.cancel_retry_button.setVisible(True)

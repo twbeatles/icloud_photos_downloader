@@ -42,16 +42,21 @@
   - 위험 경로 판정/검증 + 자동 재시도 파라미터 검증
 - `app/core/runner.py`
   - `QProcess` start/stop/kill fallback
+  - start/stop는 blocking wait 대신 타이머 기반 비동기 처리
   - 실행 직전 다운로드 폴더 preflight(생성/쓰기 점검)
   - stdout/stderr 라인 스트리밍 + signal 발행
   - 커맨드 로그 마스킹(`--username`)
+  - MFA 이후 activity 감지 시 `NEED_MFA -> RUNNING` 복귀
+  - 실행 소스(`override/frozen_internal/module/path`) 보관
   - final state 기준 완료 reason 일원화
 - `app/core/icloudpd_runtime.py`
   - `icloudpd` 엔트리포인트/버전 확인
   - 개발 모드 자동 설치(`--bootstrap-icloudpd`) 지원
+  - Python 지원 범위 이탈(예: 3.14+) 경고 메시지 제공
   - 누락 시 앱 시작은 유지하고 경고로 안내(시작 차단 팝업 지양)
 - `app/core/log_parser.py`
   - MFA/에러/완료 키워드 파싱(case-insensitive)
+  - 에러는 레벨/실패 구문 기반으로 판정(단순 `error` 단어 의존 지양)
   - 일시 네트워크 오류(transient) 판정
   - `RunSummary` 누적
 - `app/core/i18n.py`
@@ -60,11 +65,12 @@
 - `app/storage/settings_store.py`
   - `QSettings` 기반 저장/복원
   - 민감정보 저장 금지, keyring 훅만 존재
-  - 실행 이력(JSON 배열, 최신순 cap) 저장/로드
+  - 실행 이력(JSON 배열, 최신순 cap) 저장/로드 (`command_source` 포함)
   - 언어는 명시 선택 전까지 시스템 로캘 우선, 명시 선택 후 선택값 복원
 - `app/ui/*.py`
   - 설정 즉시 저장 + 종료 시 재저장
-  - 자동 재시도 옵션 UI
+  - watch 모드에서 자동 재시도 UI 비활성 + 안내
+  - 자동 재시도 대기 상태 표시 + 취소 버튼
   - Run/Logs 검색 + 오류 필터
   - Logs 최근 실행 이력 표시
   - 스핀/콤보 휠 입력으로 인한 값 변경 방지

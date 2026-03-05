@@ -16,6 +16,7 @@
     <message><source>Run finished with error (exit code {0}).</source><translation>Run finished with error (exit code {0}).</translation></message>
     <message><source>Retrying download in this session (attempt {0}/{1}).</source><translation>Retrying download in this session (attempt {0}/{1}).</translation></message>
     <message><source>Transient network issue detected. Retrying in {0} seconds...</source><translation>Transient network issue detected. Retrying in {0} seconds...</translation></message>
+    <message><source>Scheduled retry was canceled.</source><translation>Scheduled retry was canceled.</translation></message>
     <message><source>Runner Error</source><translation>Runner Error</translation></message>
     <message><source>MFA</source><translation>MFA</translation></message>
     <message><source>No authentication URL is available yet.</source><translation>No authentication URL is available yet.</translation></message>
@@ -24,6 +25,7 @@
     <message><source>Authentication WebView</source><translation>Authentication WebView</translation></message>
     <message><source>Exit</source><translation>Exit</translation></message>
     <message><source>A backup is running. Stop it and exit?</source><translation>A backup is running. Stop it and exit?</translation></message>
+    <message><source>Stopping backup before exit...</source><translation>Stopping backup before exit...</translation></message>
     <message><source>Idle</source><translation>Idle</translation></message>
     <message><source>Running</source><translation>Running</translation></message>
     <message><source>Need MFA</source><translation>Need MFA</translation></message>
@@ -53,6 +55,8 @@
     <message><source>Failed to create download directory: {0}</source><translation>Failed to create download directory: {0}</translation></message>
     <message><source>Download directory is not writable: {0}</source><translation>Download directory is not writable: {0}</translation></message>
     <message><source>Process error: {0}</source><translation>Process error: {0}</translation></message>
+    <message><source>Process did not exit after terminate(). Forcing kill().</source><translation>Process did not exit after terminate(). Forcing kill().</translation></message>
+    <message><source>Python {0} is outside the supported range ({1}). The app will continue, but some features may be unstable.</source><translation>Python {0} is outside the supported range ({1}). The app will continue, but some features may be unstable.</translation></message>
   </context>
   <context>
     <name>SettingsView</name>
@@ -77,6 +81,7 @@
     <message><source>Auto Retry Max Attempts</source><translation>Auto Retry Max Attempts</translation></message>
     <message><source>Auto Retry Base Delay (seconds)</source><translation>Auto Retry Base Delay (seconds)</translation></message>
     <message><source>Auto Retry Max Delay (seconds)</source><translation>Auto Retry Max Delay (seconds)</translation></message>
+    <message><source>Auto Retry is unavailable while Watch Mode is enabled.</source><translation>Auto Retry is unavailable while Watch Mode is enabled.</translation></message>
     <message><source>icloudpd Executable (optional)</source><translation>icloudpd Executable (optional)</translation></message>
     <message><source>Language</source><translation>Language</translation></message>
     <message><source>Theme</source><translation>Theme</translation></message>
@@ -98,6 +103,8 @@
     <message><source>Auth URL</source><translation>Auth URL</translation></message>
     <message><source>Open</source><translation>Open</translation></message>
     <message><source>Open In App</source><translation>Open In App</translation></message>
+    <message><source>Cancel Retry</source><translation>Cancel Retry</translation></message>
+    <message><source>Retry pending ({0}s)</source><translation>Retry pending ({0}s)</translation></message>
     <message><source>Live Logs</source><translation>Live Logs</translation></message>
     <message><source>Search logs</source><translation>Search logs</translation></message>
     <message><source>Errors Only</source><translation>Errors Only</translation></message>

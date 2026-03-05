@@ -41,7 +41,7 @@ except ImportError:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, startup_warning: str | None = None) -> None:
+    def __init__(self, startup_warnings: list[str] | None = None) -> None:
         super().__init__()
         self._store = SettingsStore()
         self._settings = self._store.load()
@@ -50,10 +50,11 @@ class MainWindow(QMainWindow):
         self._state = AppState.IDLE
         self._webview_window: QMainWindow | None = None
         self._webview: QWebEngineView | None = None
-        self._startup_warning = startup_warning
+        self._startup_warnings = list(startup_warnings or [])
         self._retry_attempts = 0
         self._session_started_at: datetime | None = None
         self._run_history: list[RunHistoryEntry] = []
+        self._close_after_stop = False
         self._retry_timer = QTimer(self)
         self._retry_timer.setSingleShot(True)
         self._retry_timer.timeout.connect(self._run_scheduled_retry)
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow):
         self._retranslate_ui()
         self.run_view.set_webview_available(HAS_WEBENGINE)
         self.resize(1200, 820)
-        self._apply_startup_warning()
+        self._apply_startup_warnings()
 
     def _build_ui(self) -> None:
         self.setStatusBar(QStatusBar(self))
@@ -168,6 +169,7 @@ class MainWindow(QMainWindow):
 
         self.run_view.start_requested.connect(self._start_run)
         self.run_view.stop_requested.connect(self._stop_run)
+        self.run_view.cancel_retry_requested.connect(self._cancel_scheduled_retry)
         self.run_view.open_mfa_url_requested.connect(self._open_mfa_url)
         self.run_view.open_mfa_webview_requested.connect(self._open_mfa_in_app)
 
@@ -214,6 +216,7 @@ class MainWindow(QMainWindow):
         self._i18n.set_language(settings.language)
         self._persist_current_settings()
         self._retry_timer.stop()
+        self.run_view.clear_retry_pending()
         self._retry_attempts = 0
         self._session_started_at = datetime.now(timezone.utc)
 
@@ -223,6 +226,7 @@ class MainWindow(QMainWindow):
         if clear_logs:
             self._clear_logs()
             self.run_view.set_mfa_url("")
+            self.run_view.clear_retry_pending()
 
         if is_retry:
             self._on_runner_log_line(
@@ -237,7 +241,18 @@ class MainWindow(QMainWindow):
 
     def _stop_run(self) -> None:
         self._retry_timer.stop()
+        self.run_view.clear_retry_pending()
         self._runner.stop()
+
+    def _cancel_scheduled_retry(self) -> None:
+        if not self._retry_timer.isActive():
+            return
+        self._retry_timer.stop()
+        self.run_view.clear_retry_pending()
+        self._retry_attempts = 0
+        message = self.tr("Scheduled retry was canceled.")
+        self.statusBar().showMessage(message, 5000)
+        self._on_runner_log_line(f"[retry] {message}")
 
     def _on_runner_state_changed(self, state: AppState) -> None:
         self._state = state
@@ -275,6 +290,7 @@ class MainWindow(QMainWindow):
             self._schedule_retry()
             return
 
+        self.run_view.clear_retry_pending()
         if result_state == AppState.DONE:
             self.statusBar().showMessage(self.tr("Run finished successfully."), 5000)
         elif result_state == AppState.IDLE:
@@ -286,6 +302,11 @@ class MainWindow(QMainWindow):
             )
         self._record_run_history(exit_code, reason, result_state, summary)
         self._retry_attempts = 0
+
+        if self._close_after_stop:
+            self._close_after_stop = False
+            self._persist_current_settings()
+            self.close()
 
     def _should_retry(self, result_state: AppState, summary: RunSummary) -> bool:
         if result_state != AppState.ERROR:
@@ -309,11 +330,13 @@ class MainWindow(QMainWindow):
         )
         self.statusBar().showMessage(message, 6000)
         self._on_runner_log_line(f"[retry] {message}")
+        self.run_view.set_retry_pending(True, delay)
         self._retry_timer.start(delay * 1000)
 
     def _run_scheduled_retry(self) -> None:
         if self._runner.is_running():
             return
+        self.run_view.clear_retry_pending()
         self._start_with_settings(self._settings, clear_logs=False, is_retry=True)
 
     def _record_run_history(
@@ -338,6 +361,7 @@ class MainWindow(QMainWindow):
             "last_error": summary.last_error,
             "retry_attempts": self._retry_attempts,
             "watch_enabled": self._settings.watch_enabled,
+            "command_source": self._runner.command_source,
         }
         self._store.append_run_history(entry, max_items=50)
         self._run_history = self._store.load_run_history()
@@ -470,6 +494,13 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self._retry_timer.stop()
+        self.run_view.clear_retry_pending()
+
+        if self._close_after_stop:
+            self._persist_current_settings()
+            event.accept()
+            return
+
         if self._runner.is_running():
             answer = QMessageBox.question(
                 self,
@@ -481,7 +512,11 @@ class MainWindow(QMainWindow):
             if answer != QMessageBox.StandardButton.Yes:
                 event.ignore()
                 return
+            self._close_after_stop = True
             self._runner.stop(3000)
+            self.statusBar().showMessage(self.tr("Stopping backup before exit..."), 5000)
+            event.ignore()
+            return
         self._persist_current_settings()
         event.accept()
 
@@ -538,13 +573,27 @@ class MainWindow(QMainWindow):
         if message.startswith("Process error: "):
             detail = message.replace("Process error: ", "", 1)
             return self.tr("Process error: {0}").format(detail)
+        if message == "Process did not exit after terminate(). Forcing kill().":
+            return self.tr("Process did not exit after terminate(). Forcing kill().")
+        if message == "Scheduled retry was canceled.":
+            return self.tr("Scheduled retry was canceled.")
+        if message.startswith("Python ") and "is outside the supported range" in message:
+            version = message.split("Python ", 1)[1].split(" is outside the supported range", 1)[0]
+            range_part = message.split("(", 1)[1].split(")", 1)[0] if "(" in message and ")" in message else ""
+            return self.tr(
+                "Python {0} is outside the supported range ({1}). "
+                "The app will continue, but some features may be unstable."
+            ).format(version, range_part)
         return message
 
-    def _apply_startup_warning(self) -> None:
-        if not self._startup_warning:
+    def _apply_startup_warnings(self) -> None:
+        if not self._startup_warnings:
             return
-        translated = self._translate_runtime_message(self._startup_warning)
-        line = f"[warning] {translated}"
-        self._on_runner_log_line(line)
-        self.statusBar().showMessage(translated, 12000)
-        self._startup_warning = None
+        last_translated = ""
+        for warning in self._startup_warnings:
+            translated = self._translate_runtime_message(warning)
+            last_translated = translated
+            self._on_runner_log_line(f"[warning] {translated}")
+        if last_translated:
+            self.statusBar().showMessage(last_translated, 12000)
+        self._startup_warnings = []
