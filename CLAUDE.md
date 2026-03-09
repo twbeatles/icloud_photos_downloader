@@ -96,6 +96,12 @@ python -m app.main
 python -m pytest -q
 ```
 
+정적 분석/인코딩 점검:
+```bash
+pyright
+python scripts/check_utf8.py
+```
+
 빌드:
 ```bash
 python scripts/build.py
@@ -108,8 +114,9 @@ python scripts/build.py
 3. `runner.py` stop 로직(`terminate -> kill`)과 preflight/fallback가 유지되는가
 4. final_state와 UI 완료 메시지 기준이 일치하는가
 5. i18n 변경 시 `.ts`/`.qm` 동시 반영했는가
-6. 테스트(`pytest -q`) 통과했는가
-7. `icloudpd-gui.spec`가 번들 전략을 계속 반영하는가
+6. 정적검사(`pyright`, `python scripts/check_utf8.py`) 통과했는가
+7. 테스트(`pytest -q`) 통과했는가
+8. `icloudpd-gui.spec`가 번들 전략을 계속 반영하는가
 
 ## 7) 자주 발생하는 실수
 

@@ -1,0 +1,12 @@
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{py,md,toml,json,yml,yaml,ini,txt,cfg,ts,spec}]
+charset = utf-8
+
+[{.gitignore,.gitattributes,.editorconfig}]
+charset = utf-8

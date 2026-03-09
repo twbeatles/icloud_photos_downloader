@@ -64,6 +64,7 @@ app/
     messages_ko.ts / messages_ko.qm
 scripts/
   build.py
+  check_utf8.py
 tests/
   test_config.py
   test_i18n.py
@@ -74,6 +75,8 @@ tests/
   test_runner_resolution.py
   test_ui_views.py
 icloudpd-gui.spec
+pyrightconfig.json
+.editorconfig
 ```
 
 ## 4. 실행 방식(번들 전략)
@@ -109,7 +112,7 @@ icloudpd-gui.spec
 pip install -e .
 ```
 
-개발/테스트/빌드 도구 포함:
+개발/테스트/빌드/정적 분석 도구 포함:
 
 ```bash
 pip install -e .[dev]
@@ -205,6 +208,13 @@ python scripts/build.py --skip-smoke-test
 
 ```bash
 python -m pytest -q
+```
+
+정적 타입/인코딩 점검:
+
+```bash
+pyright
+python scripts/check_utf8.py
 ```
 
 현재 테스트 범위:

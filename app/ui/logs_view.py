@@ -119,11 +119,26 @@ class LogsView(QWidget):
         started = str(entry.get("started_at", "-"))
         finished = str(entry.get("finished_at", "-"))
         result = str(entry.get("final_state", "-"))
-        downloaded = int(entry.get("downloaded_count", 0))
-        errors = int(entry.get("error_count", 0))
-        retries = int(entry.get("retry_attempts", 0))
+        downloaded = self._to_int(entry.get("downloaded_count"), 0)
+        errors = self._to_int(entry.get("error_count"), 0)
+        retries = self._to_int(entry.get("retry_attempts"), 0)
         source = str(entry.get("command_source", "unknown"))
         return (
             f"[{result}] {started} -> {finished} | "
             f"downloaded={downloaded}, errors={errors}, retries={retries}, source={source}"
         )
+
+    @staticmethod
+    def _to_int(value: object, default: int) -> int:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value.strip())
+            except ValueError:
+                return default
+        return default

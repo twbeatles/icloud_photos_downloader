@@ -1,0 +1,17 @@
+{
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.10",
+  "include": ["app", "tests"],
+  "exclude": [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/.ruff_cache",
+    "build",
+    "dist",
+    ".venv",
+    "venv",
+    "**/*.egg-info"
+  ],
+  "reportMissingTypeStubs": "none"
+}

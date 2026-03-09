@@ -267,11 +267,11 @@ class ICloudPdRunner(QObject):
         self._process.kill()
 
     def _on_stdout(self) -> None:
-        chunk = bytes(self._process.readAllStandardOutput())
+        chunk = bytes(self._process.readAllStandardOutput().data())
         self._stdout_buffer = self._drain_chunk(chunk, self._stdout_buffer)
 
     def _on_stderr(self) -> None:
-        chunk = bytes(self._process.readAllStandardError())
+        chunk = bytes(self._process.readAllStandardError().data())
         self._stderr_buffer = self._drain_chunk(chunk, self._stderr_buffer)
 
     def _drain_chunk(self, chunk: bytes, buffer: bytes) -> bytes:

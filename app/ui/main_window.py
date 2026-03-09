@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 try:
     import qdarktheme
 except ImportError:
     qdarktheme = None  # type: ignore[assignment]
-from PySide6.QtCore import QEvent, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QTimer, QUrl
 from PySide6.QtGui import QCloseEvent, QDesktopServices
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QHBoxLayout,
     QLabel,
@@ -49,7 +51,7 @@ class MainWindow(QMainWindow):
         self._logs: list[str] = []
         self._state = AppState.IDLE
         self._webview_window: QMainWindow | None = None
-        self._webview: QWebEngineView | None = None
+        self._webview: Any | None = None
         self._startup_warnings = list(startup_warnings or [])
         self._retry_attempts = 0
         self._session_started_at: datetime | None = None
@@ -184,12 +186,12 @@ class MainWindow(QMainWindow):
         self._runner.error.connect(self._on_runner_error)
         self._runner.runtime_warning.connect(self._on_runner_warning)
 
-    def _require_qt_app(self):  # type: ignore[no-untyped-def]
-        from PySide6.QtWidgets import QApplication
-
+    def _require_qt_app(self) -> QApplication:
         app = QApplication.instance()
         if app is None:
             raise RuntimeError("QApplication must be created before MainWindow.")
+        if isinstance(app, QCoreApplication) and not isinstance(app, QApplication):
+            raise RuntimeError("QApplication is required but only QCoreApplication is available.")
         return app
 
     def _start_run(self) -> None:
@@ -401,8 +403,9 @@ class MainWindow(QMainWindow):
             assert QWebEngineView is not None
             self._webview_window = QMainWindow(self)
             self._webview_window.setWindowTitle(self.tr("Authentication WebView"))
-            self._webview = QWebEngineView(self._webview_window)
-            self._webview_window.setCentralWidget(self._webview)
+            webview = QWebEngineView(self._webview_window)
+            self._webview = webview
+            self._webview_window.setCentralWidget(webview)
             self._webview_window.resize(980, 760)
 
         assert self._webview is not None
@@ -452,13 +455,15 @@ class MainWindow(QMainWindow):
         if qdarktheme is None:
             return
 
-        if hasattr(qdarktheme, "setup_theme"):
-            qdarktheme.setup_theme(selected)
+        setup_theme = getattr(qdarktheme, "setup_theme", None)
+        if callable(setup_theme):
+            setup_theme(selected)
             return
 
-        if hasattr(qdarktheme, "load_stylesheet"):
+        load_stylesheet = getattr(qdarktheme, "load_stylesheet", None)
+        if callable(load_stylesheet):
             app = self._require_qt_app()
-            app.setStyleSheet(qdarktheme.load_stylesheet(selected))
+            app.setStyleSheet(str(load_stylesheet(selected)))
 
     def _show_issues(self, title: str, issues: list[ValidationIssue], icon: str = "warning") -> None:
         lines = [f"- {self._translate_validation_message(issue.message)}" for issue in issues]

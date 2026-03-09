@@ -12,7 +12,9 @@ from app.ui.settings_view import SettingsView
 def _ensure_app() -> QApplication:
     app = QApplication.instance()
     if app is None:
-        app = QApplication([])
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        raise RuntimeError("QApplication instance is required for UI tests.")
     return app
 
 
