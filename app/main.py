@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
+import runpy
 import sys
 from pathlib import Path
 
@@ -18,19 +20,30 @@ BOOTSTRAP_ICLOUDPD_FLAG = "--bootstrap-icloudpd"
 
 def _run_bundled_icloudpd(argv: list[str]) -> int:
     filtered_args = [arg for arg in argv if arg != INTERNAL_WORKER_FLAG]
+    sys.argv = ["icloudpd", *filtered_args]
+
     try:
         module = importlib.import_module("icloudpd.cli")
     except ModuleNotFoundError as exc:
-        raise RuntimeError(
-            "Bundled icloudpd entrypoint is unavailable. "
-            "In development mode, run `pip install -e .` with Python 3.10~3.13."
-        ) from exc
+        if importlib.util.find_spec("icloudpd.__main__") is None:
+            raise RuntimeError(
+                "Bundled icloudpd entrypoint is unavailable. "
+                "In development mode, run `pip install -e .` with Python 3.10~3.13."
+            ) from exc
+        try:
+            runpy.run_module("icloudpd", run_name="__main__", alter_sys=True)
+        except SystemExit as system_exit:
+            if system_exit.code is None:
+                return 0
+            if isinstance(system_exit.code, int):
+                return system_exit.code
+            return 1
+        return 0
 
     icloudpd_cli = getattr(module, "cli", None)
     if icloudpd_cli is None:
         raise RuntimeError("`icloudpd.cli` module does not expose `cli()` entrypoint.")
 
-    sys.argv = ["icloudpd", *filtered_args]
     return icloudpd_cli()
 
 

@@ -8,8 +8,17 @@ import sys
 from importlib import metadata as importlib_metadata
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.core.icloudpd_runtime import (  # noqa: E402
+    ICLOUDPD_MIN_VERSION,
+    has_icloudpd_cli_entrypoint,
+    has_icloudpd_module_entrypoint,
+    is_icloudpd_version_supported,
+)
+
 I18N_DIR = ROOT / "app" / "i18n"
 SPEC_FILE = ROOT / "icloudpd-gui.spec"
 INTERNAL_WORKER_FLAG = "--_run_icloudpd"
@@ -71,6 +80,14 @@ def ensure_icloudpd_available() -> str:
         raise RuntimeError(
             "The `icloudpd` package is required for bundled build. Run `pip install -e .` first."
         ) from exc
+    if not is_icloudpd_version_supported(version):
+        raise RuntimeError(
+            f"The installed `icloudpd` package is {version}; {ICLOUDPD_MIN_VERSION}+ is required."
+        )
+    if not (has_icloudpd_cli_entrypoint() or has_icloudpd_module_entrypoint()):
+        raise RuntimeError(
+            "The installed `icloudpd` package does not expose a Python CLI or module entrypoint."
+        )
     print(f"Detected icloudpd version: {version}")
     return version
 

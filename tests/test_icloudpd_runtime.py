@@ -28,10 +28,18 @@ def test_has_icloudpd_cli_entrypoint(monkeypatch) -> None:  # type: ignore[no-un
 
 
 def test_ensure_runtime_returns_false_when_missing(monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(runtime, "has_icloudpd_cli_entrypoint", lambda: False)
+    monkeypatch.setattr(runtime, "has_icloudpd_runtime_entrypoint", lambda: False)
     ok, message = runtime.ensure_icloudpd_runtime(auto_bootstrap=False)
     assert not ok
     assert "Bundled icloudpd entrypoint is unavailable." in message
+
+
+def test_ensure_runtime_warns_when_version_is_too_old(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(runtime, "has_icloudpd_runtime_entrypoint", lambda: True)
+    monkeypatch.setattr(runtime, "get_icloudpd_version", lambda: "1.32.2")
+    ok, message = runtime.ensure_icloudpd_runtime(auto_bootstrap=False)
+    assert not ok
+    assert "older than required 1.32.3" in message
 
 
 def test_ensure_runtime_uses_bootstrap_when_enabled(monkeypatch) -> None:  # type: ignore[no-untyped-def]
@@ -44,7 +52,7 @@ def test_ensure_runtime_uses_bootstrap_when_enabled(monkeypatch) -> None:  # typ
         state["installed"] = True
         return True, ""
 
-    monkeypatch.setattr(runtime, "has_icloudpd_cli_entrypoint", _has)
+    monkeypatch.setattr(runtime, "has_icloudpd_runtime_entrypoint", _has)
     monkeypatch.setattr(runtime, "bootstrap_icloudpd", _bootstrap)
     monkeypatch.setattr(runtime.sys, "frozen", False, raising=False)
 

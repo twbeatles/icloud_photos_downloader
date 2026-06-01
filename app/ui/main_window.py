@@ -562,6 +562,14 @@ class MainWindow(QMainWindow):
             )
         if message == "`icloudpd` executable not found. Install it or set its path.":
             return self.tr("`icloudpd` executable not found. Install it or set its path.")
+        if message.startswith("`icloudpd` ") and " is older than required " in message:
+            version = message.split("`icloudpd` ", 1)[1].split(" is older than required ", 1)[0]
+            required = message.split(" is older than required ", 1)[1].split(".", 3)
+            required_version = ".".join(required[:3])
+            return self.tr(
+                "`icloudpd` {0} is older than required {1}. "
+                "Run `pip install -U \"icloudpd>={1},<2\"` or use --bootstrap-icloudpd."
+            ).format(version, required_version)
         if message == "Failed to start `icloudpd` process.":
             return self.tr("Failed to start `icloudpd` process.")
         if message.startswith("Configured `icloudpd` executable is invalid and will be ignored: "):

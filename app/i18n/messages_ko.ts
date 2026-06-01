@@ -50,6 +50,7 @@
     <message><source>A download process is already running.</source><translation>이미 다운로드 프로세스가 실행 중입니다.</translation></message>
     <message><source>Bundled icloudpd entrypoint is unavailable. Install dependencies (pip install -e .) or run with --bootstrap-icloudpd.</source><translation>내장된 icloudpd 엔트리포인트를 사용할 수 없습니다. 의존성을 설치하세요 (pip install -e .) 또는 --bootstrap-icloudpd로 실행하세요.</translation></message>
     <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` 실행 파일을 찾을 수 없습니다. 설치하거나 경로를 지정하세요.</translation></message>
+    <message><source>`icloudpd` {0} is older than required {1}. Run `pip install -U &quot;icloudpd&gt;={1},&lt;2&quot;` or use --bootstrap-icloudpd.</source><translation>`icloudpd` {0} 버전이 요구 버전 {1}보다 낮습니다. `pip install -U &quot;icloudpd&gt;={1},&lt;2&quot;`를 실행하거나 --bootstrap-icloudpd를 사용하세요.</translation></message>
     <message><source>Failed to start `icloudpd` process.</source><translation>`icloudpd` 프로세스를 시작하지 못했습니다.</translation></message>
     <message><source>Configured `icloudpd` executable is invalid and will be ignored: {0}</source><translation>설정된 `icloudpd` 실행 파일 경로가 유효하지 않아 무시됩니다: {0}</translation></message>
     <message><source>Failed to create download directory: {0}</source><translation>다운로드 폴더를 생성하지 못했습니다: {0}</translation></message>

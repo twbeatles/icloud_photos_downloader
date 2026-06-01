@@ -38,6 +38,10 @@ MVP는 `QProcess` 기반 subprocess 실행 방식을 사용하며, 인증은 `we
   - 루트/시스템 폴더 경고
   - 실행 직전 다운로드 폴더 preflight(자동 생성 시도 + 쓰기 가능성 점검)
   - 실행 중 종료 확인 모달 + `terminate -> kill` fallback
+- upstream 구조 반영
+  - `icloudpd>=1.32.3,<2` 요구(2026+ 2FA/WebUI 인증 흐름 반영)
+  - 일반 Python 패키지(`icloudpd.cli`)와 upstream binary wheel(`icloudpd.__main__`) 실행 구조 모두 인식
+  - PyInstaller 번들 시 upstream WebUI 자산 배치(`templates/`, `static/`)와 `keyrings.alt` 수집 방식 반영
 
 ## 3. 프로젝트 구조
 
@@ -72,6 +76,7 @@ tests/
   test_log_parser.py
   test_runner_lifecycle.py
   test_settings_store.py
+  test_main_entrypoint.py
   test_runner_resolution.py
   test_ui_views.py
 icloudpd-gui.spec
@@ -86,17 +91,19 @@ pyrightconfig.json
 1. 설정의 `icloudpd_executable` (존재할 때)
 2. PyInstaller 배포본(`sys.frozen=True`)이면 현재 실행 파일 + 내부 워커 플래그
    - `sys.executable --_run_icloudpd ...`
-3. 소스/개발 환경이면 `python -m icloudpd.cli`
-4. 시스템 PATH의 `icloudpd`
+3. 소스/개발 환경에서 일반 Python 패키지가 있으면 `python -m icloudpd.cli`
+4. upstream binary wheel 구조만 있으면 `python -m icloudpd`
+5. 시스템 PATH의 `icloudpd`
 
 즉, **배포본은 내부 번들된 `icloudpd`를 기본 사용**하고, 필요 시 외부 실행 파일로 override할 수 있습니다.
 설정된 외부 경로가 유효하지 않으면 경고를 남기고 내부/다음 후보로 자동 fallback합니다.
-앱 시작 시 내부 `icloudpd.cli` 엔트리포인트를 self-check하며, 누락 시 앱은 계속 실행되고 경고 로그/상태 메시지로 안내합니다.
+앱 시작 시 `icloudpd` 엔트리포인트와 최소 버전(`1.32.3`)을 self-check하며, 누락/구버전이면 앱은 계속 실행되고 경고 로그/상태 메시지로 안내합니다.
 시작 경고는 실행 차단 팝업 대신 상태바/로그로 표시됩니다.
 
 ## 5. 요구사항
 
 - Python: `>=3.10,<3.14`
+- `icloudpd`: `>=1.32.3,<2`
 - 권장: 가상환경 사용
 - 소스 실행 시 의존성 설치 필요
 
@@ -198,11 +205,21 @@ python scripts/build.py --skip-smoke-test
 
 1. `app/i18n/*.ts -> *.qm` 컴파일
 2. `icloudpd-gui.spec`로 PyInstaller onefile 빌드
-3. 산출 실행 파일로 내부 워커 smoke test(`--_run_icloudpd --help`) 수행
+3. upstream WebUI 자산(`templates/`, `static/`)과 `keyrings.alt`/패키지 metadata를 번들
+4. 산출 실행 파일로 내부 워커 smoke test(`--_run_icloudpd --help`) 수행
+
+빌드는 `pyproject.toml`의 Python 지원 범위와 동일하게 3.10~3.13 환경에서 수행해야 합니다.
+3.14+ 환경에서는 앱이 경고와 함께 시작될 수는 있지만, 의존성 설치와 PyInstaller 번들 빌드는 지원 범위 밖입니다.
 
 결과물:
 
 - `dist/icloudpd-gui` (OS별 확장자 차이)
+
+생성 산출물 정책:
+
+- `build/`, `dist/`, `wheelhouse/`, `*.whl`, `*.egg-info/`는 배포/패키징 산출물이므로 추적하지 않습니다.
+- `.pytest_cache/`, `.cache/`, `.mypy_cache/`, `.ruff_cache/`, `.pyright*/`, `__pycache__/`는 로컬 검증 캐시입니다.
+- `.cookies/`, `.photos/`는 upstream `icloudpd` 로컬 테스트/문제분석에서 생길 수 있는 쿠키/사진 산출물이며, 실제 사용자 데이터가 저장될 수 있어 추적하지 않습니다.
 
 ## 11. 테스트
 
@@ -224,7 +241,8 @@ python scripts/check_utf8.py
 - `icloudpd` 런타임 self-check/bootstrap 동작
 - 로그 파싱/상태 판정 + 일시 네트워크 오류 판정
 - `QSettings` 저장/복원 + 민감정보 미저장 + 실행 이력 저장(cap)
-- runner 실행 해석 우선순위 + override fallback + preflight + 커맨드 마스킹
+- 내부 워커 엔트리포인트(`icloudpd.cli` 우선, `icloudpd.__main__` fallback)
+- runner 실행 해석 우선순위(`icloudpd.cli`/`icloudpd.__main__`/PATH) + override fallback + preflight + 커맨드 마스킹
 - runner 라이프사이클(start timeout, terminate->kill, finished 중복 방지, MFA 복귀)
 - UI 경량 검증(자동 재시도 설정 수집/Watch 비활성, 로그 필터, retry pending 취소, 실행 이력 렌더링)
 

@@ -27,11 +27,14 @@
    - `sys.executable --_run_icloudpd`
 3. 소스/개발 환경이면 모듈 실행
    - `sys.executable -m icloudpd.cli`
-4. PATH의 `icloudpd`
+4. upstream binary wheel 구조이면 모듈 실행
+   - `sys.executable -m icloudpd`
+5. PATH의 `icloudpd`
 
 주의:
 - 배포본에서 내부 워커 플래그(`--_run_icloudpd`) 제거/변경 시 번들 실행이 깨진다.
 - 사용자 지정 실행 파일이 유효하지 않으면 경고 후 다음 우선순위로 fallback한다.
+- `icloudpd` 최소 버전은 `1.32.3`이다. 2026+ 2FA/WebUI 인증 흐름 때문에 구버전은 시작 경고를 표시해야 한다.
 
 ## 4) 주요 파일 책임
 
@@ -47,10 +50,10 @@
   - stdout/stderr 라인 스트리밍 + signal 발행
   - 커맨드 로그 마스킹(`--username`)
   - MFA 이후 activity 감지 시 `NEED_MFA -> RUNNING` 복귀
-  - 실행 소스(`override/frozen_internal/module/path`) 보관
+  - 실행 소스(`override/frozen_internal/module/binary_module/path`) 보관
   - final state 기준 완료 reason 일원화
 - `app/core/icloudpd_runtime.py`
-  - `icloudpd` 엔트리포인트/버전 확인
+  - `icloudpd.cli`, `icloudpd.__main__`, PATH 실행 파일 엔트리포인트/버전 확인
   - 개발 모드 자동 설치(`--bootstrap-icloudpd`) 지원
   - Python 지원 범위 이탈(예: 3.14+) 경고 메시지 제공
   - 누락 시 앱 시작은 유지하고 경고로 안내(시작 차단 팝업 지양)
@@ -76,6 +79,8 @@
   - 스핀/콤보 휠 입력으로 인한 값 변경 방지
 - `icloudpd-gui.spec`
   - 번들 데이터/hidden import 포함
+  - upstream PyInstaller 구조에 맞춰 WebUI 자산은 `_MEIPASS/templates`, `_MEIPASS/static` 루트로도 포함
+  - `keyrings.alt`와 package metadata 수집 유지
 - `scripts/build.py`
   - 번역 컴파일 + onefile 빌드 + 번들 워커 smoke test
 
@@ -117,6 +122,7 @@ python scripts/build.py
 6. 정적검사(`pyright`, `python scripts/check_utf8.py`) 통과했는가
 7. 테스트(`pytest -q`) 통과했는가
 8. `icloudpd-gui.spec`가 번들 전략을 계속 반영하는가
+9. `.gitignore` 변경 여부를 실제 생성 산출물(`build/`, `dist/`, 캐시, egg-info, 로컬 쿠키/사진 디렉터리) 기준으로 확인했는가
 
 ## 7) 자주 발생하는 실수
 
@@ -124,6 +130,8 @@ python scripts/build.py
   - 기본값만 로캘 기반, 저장된 사용자 선택은 존중해야 함
 - `*.spec` 전체를 ignore해서 공식 spec이 누락되는 문제
   - `icloudpd-gui.spec`는 반드시 버전 관리
+- upstream WebUI 자산을 `icloudpd/server/...`에만 넣는 문제
+  - frozen 런타임은 `_MEIPASS/templates`, `_MEIPASS/static`도 필요하다
 - 문서 갱신 누락
   - 실행 우선순위/번들 여부가 코드와 어긋나기 쉬움
 

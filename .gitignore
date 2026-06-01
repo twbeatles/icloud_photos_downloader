@@ -3,6 +3,7 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.cache/
 .mypy_cache/
 .ruff_cache/
 .pyright/
@@ -21,8 +22,14 @@ Thumbs.db
 .coverage
 .coverage.*
 coverage.xml
+htmlcov/
 build/
 dist/
+wheelhouse/
+*.whl
 *.spec
 !icloudpd-gui.spec
 *.egg-info/
+docs/_build/
+.cookies/
+.photos/

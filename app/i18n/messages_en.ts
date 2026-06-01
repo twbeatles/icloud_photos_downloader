@@ -50,6 +50,7 @@
     <message><source>A download process is already running.</source><translation>A download process is already running.</translation></message>
     <message><source>Bundled icloudpd entrypoint is unavailable. Install dependencies (pip install -e .) or run with --bootstrap-icloudpd.</source><translation>Bundled icloudpd entrypoint is unavailable. Install dependencies (pip install -e .) or run with --bootstrap-icloudpd.</translation></message>
     <message><source>`icloudpd` executable not found. Install it or set its path.</source><translation>`icloudpd` executable not found. Install it or set its path.</translation></message>
+    <message><source>`icloudpd` {0} is older than required {1}. Run `pip install -U &quot;icloudpd&gt;={1},&lt;2&quot;` or use --bootstrap-icloudpd.</source><translation>`icloudpd` {0} is older than required {1}. Run `pip install -U &quot;icloudpd&gt;={1},&lt;2&quot;` or use --bootstrap-icloudpd.</translation></message>
     <message><source>Failed to start `icloudpd` process.</source><translation>Failed to start `icloudpd` process.</translation></message>
     <message><source>Configured `icloudpd` executable is invalid and will be ignored: {0}</source><translation>Configured `icloudpd` executable is invalid and will be ignored: {0}</translation></message>
     <message><source>Failed to create download directory: {0}</source><translation>Failed to create download directory: {0}</translation></message>

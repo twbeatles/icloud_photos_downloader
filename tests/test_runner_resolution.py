@@ -47,6 +47,7 @@ def test_resolve_command_uses_module_execution(monkeypatch) -> None:  # type: ig
 def test_resolve_command_uses_path_binary_when_module_missing(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(runner.sys, "frozen", False, raising=False)
     monkeypatch.setattr(runner, "_has_icloudpd_module", lambda: False)
+    monkeypatch.setattr(runner, "_has_icloudpd_binary_module", lambda: False)
     monkeypatch.setattr(runner.shutil, "which", lambda _name: "/usr/bin/icloudpd")
     command = resolve_icloudpd_command(None)
     assert command is not None
@@ -55,9 +56,22 @@ def test_resolve_command_uses_path_binary_when_module_missing(monkeypatch) -> No
     assert command.source == "path"
 
 
+def test_resolve_command_uses_binary_module_before_path(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(runner.sys, "frozen", False, raising=False)
+    monkeypatch.setattr(runner, "_has_icloudpd_module", lambda: False)
+    monkeypatch.setattr(runner, "_has_icloudpd_binary_module", lambda: True)
+    monkeypatch.setattr(runner.shutil, "which", lambda _name: "/usr/bin/icloudpd")
+    command = resolve_icloudpd_command(None)
+    assert command is not None
+    assert command.program == __import__("sys").executable
+    assert command.args == ["-m", "icloudpd"]
+    assert command.source == "binary_module"
+
+
 def test_resolve_command_returns_none_when_not_found(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(runner.sys, "frozen", False, raising=False)
     monkeypatch.setattr(runner, "_has_icloudpd_module", lambda: False)
+    monkeypatch.setattr(runner, "_has_icloudpd_binary_module", lambda: False)
     monkeypatch.setattr(runner.shutil, "which", lambda _name: None)
     assert resolve_icloudpd_command(None) is None
 
@@ -65,6 +79,7 @@ def test_resolve_command_returns_none_when_not_found(monkeypatch) -> None:  # ty
 def test_resolve_command_invalid_override_falls_back(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(runner.sys, "frozen", False, raising=False)
     monkeypatch.setattr(runner, "_has_icloudpd_module", lambda: False)
+    monkeypatch.setattr(runner, "_has_icloudpd_binary_module", lambda: False)
     monkeypatch.setattr(runner.shutil, "which", lambda _name: "/usr/bin/icloudpd")
     command = resolve_icloudpd_command("/invalid/path/icloudpd")
     assert command is not None
@@ -82,6 +97,7 @@ def test_resolve_command_windows_override_requires_allowed_extension(
     monkeypatch.setenv("PATHEXT", ".EXE;.BAT;.CMD")
     monkeypatch.setattr(runner.sys, "frozen", False, raising=False)
     monkeypatch.setattr(runner, "_has_icloudpd_module", lambda: False)
+    monkeypatch.setattr(runner, "_has_icloudpd_binary_module", lambda: False)
     monkeypatch.setattr(runner.shutil, "which", lambda _name: "C:\\Program Files\\icloudpd.exe")
 
     command = resolve_icloudpd_command(str(candidate))

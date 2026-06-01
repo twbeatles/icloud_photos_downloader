@@ -34,10 +34,11 @@
   1. 설정된 외부 실행 파일 경로
   2. PyInstaller 배포본: `sys.executable --_run_icloudpd`
   3. 소스/개발 모드: `python -m icloudpd.cli`
-  4. PATH의 `icloudpd`
+  4. upstream binary wheel 구조: `python -m icloudpd`
+  5. PATH의 `icloudpd`
 - 외부 실행 파일 경로가 유효하지 않으면 경고 후 fallback해야 한다(즉시 실패 금지).
 - 실행 커맨드 로그는 `--username` 값을 마스킹해야 한다.
-- 앱 시작 시 `icloudpd.cli` 엔트리포인트 self-check를 수행해야 한다.
+- 앱 시작 시 `icloudpd.cli`/`icloudpd.__main__`/PATH 엔트리포인트와 최소 버전(`1.32.3`) self-check를 수행해야 한다.
 - 개발 모드에서 `--bootstrap-icloudpd` 옵션으로 누락 의존성 자동 설치를 지원할 수 있다.
 - 런타임 누락 시 앱은 시작을 유지하고 경고 메시지로 안내해야 한다(하드 블로킹 지양).
 
@@ -68,6 +69,8 @@
 ### B-5. 빌드/배포
 - `scripts/build.py`에서 `.ts -> .qm` 후 PyInstaller onefile.
 - `icloudpd-gui.spec`는 번들 리소스/hidden import를 포함해야 한다.
+- upstream WebUI 자산은 frozen 런타임 구조에 맞춰 `_MEIPASS/templates`, `_MEIPASS/static`에 배치되어야 한다.
+- `keyrings.alt`와 package metadata는 upstream binary/source wheel 양쪽을 고려해 수집되어야 한다.
 - 빌드 후 실행 파일의 내부 워커 smoke test(`--_run_icloudpd --help`)를 수행해야 한다.
 - 산출물은 `dist/` 기준.
 
@@ -81,6 +84,7 @@
 - 임포트/경로/타입 오류 여부
 - 문서와 코드 동작 일치 여부
 - UTF-8 인코딩/깨진 문자 점검(`python scripts/check_utf8.py`)
+- `.gitignore`는 실제 로컬 산출물 기준으로 `git check-ignore -v --no-index` 증거를 확인한 뒤 필요한 항목만 추가
 
 정적 타입 검사:
 ```bash
@@ -114,6 +118,7 @@ python -m pytest -q
 - 민감정보 저장 구현
 - 공식 spec 우회 임시 빌드 파이프라인 추가
 - 동작 변경 후 문서/번역 미갱신
+- 증거 없이 `.gitignore`에 광범위한 미래 추정 패턴 추가
 
 ## E. 우선순위
 

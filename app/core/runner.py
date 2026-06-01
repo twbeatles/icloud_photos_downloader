@@ -17,7 +17,7 @@ from app.core.log_parser import AppState, LogParser, RunSummary, final_state
 INTERNAL_WORKER_FLAG = "--_run_icloudpd"
 DEFAULT_START_TIMEOUT_MS = 5000
 DEFAULT_STOP_TIMEOUT_MS = 5000
-CommandSource = Literal["override", "frozen_internal", "module", "path"]
+CommandSource = Literal["override", "frozen_internal", "module", "binary_module", "path"]
 
 
 @dataclass(slots=True)
@@ -31,6 +31,13 @@ class CommandResolution:
 def _has_icloudpd_module() -> bool:
     try:
         return importlib.util.find_spec("icloudpd.cli") is not None
+    except ModuleNotFoundError:
+        return False
+
+
+def _has_icloudpd_binary_module() -> bool:
+    try:
+        return importlib.util.find_spec("icloudpd.__main__") is not None
     except ModuleNotFoundError:
         return False
 
@@ -80,6 +87,15 @@ def resolve_icloudpd_command(override: str | None) -> CommandResolution | None:
             program=sys.executable,
             args=["-m", "icloudpd.cli"],
             source="module",
+            warnings=warnings,
+        )
+
+    # Upstream also publishes binary wheel wrappers that expose `python -m icloudpd`.
+    if _has_icloudpd_binary_module():
+        return CommandResolution(
+            program=sys.executable,
+            args=["-m", "icloudpd"],
+            source="binary_module",
             warnings=warnings,
         )
 

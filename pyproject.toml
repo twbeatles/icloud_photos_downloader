@@ -13,7 +13,7 @@ authors = [{ name = "icloudpd-gui contributors" }]
 dependencies = [
     "PySide6>=6.7,<7",
     "pyqtdarktheme>=0.1.7,<1",
-    "icloudpd>=1.32.2,<2",
+    "icloudpd>=1.32.3,<2",
 ]
 
 [project.optional-dependencies]
