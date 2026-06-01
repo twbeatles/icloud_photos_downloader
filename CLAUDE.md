@@ -79,9 +79,11 @@
   - 스핀/콤보 휠 입력으로 인한 값 변경 방지
 - `icloudpd-gui.spec`
   - 번들 데이터/hidden import 포함
+  - PyInstaller spec 실행 환경에서는 `__file__` 대신 `SPECPATH`로 프로젝트 루트를 계산
   - upstream PyInstaller 구조에 맞춰 WebUI 자산은 `_MEIPASS/templates`, `_MEIPASS/static` 루트로도 포함
   - `keyrings.alt`와 package metadata 수집 유지
 - `scripts/build.py`
+  - 현재 실행 중인 Python 환경의 `pyside6-lrelease` 우선 사용
   - 번역 컴파일 + onefile 빌드 + 번들 워커 smoke test
 
 ## 5) 개발 표준 커맨드

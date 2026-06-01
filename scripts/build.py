@@ -25,8 +25,10 @@ INTERNAL_WORKER_FLAG = "--_run_icloudpd"
 
 
 def _find_lrelease() -> str | None:
+    current_python_tool = Path(sys.executable).with_name("pyside6-lrelease.exe")
     candidates = [
         os.environ.get("PYSIDE6_LRELEASE"),
+        str(current_python_tool),
         "pyside6-lrelease",
         "lrelease",
     ]

@@ -7,7 +7,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_all, collect_submodules, copy_metadata
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(SPECPATH).resolve()
 APP_ENTRY = PROJECT_ROOT / "app" / "main.py"
 I18N_DIR = PROJECT_ROOT / "app" / "i18n"
 
