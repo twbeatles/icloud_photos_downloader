@@ -70,3 +70,22 @@ def test_log_parser_transient_error_detection() -> None:
 def test_line_has_error() -> None:
     assert line_has_error("2026 ERROR bad")
     assert not line_has_error("2026 INFO all good")
+
+
+def test_log_parser_handles_2fa_push_notification_activity() -> None:
+    parser = LogParser()
+    event = parser.parse_line("2026-05-30 12:00:00 DEBUG 2FA push notification triggered")
+    assert not event.error
+    assert event.activity_detected
+    assert parser.summary.error_count == 0
+
+
+def test_log_parser_does_not_flag_2fa_push_failure_as_error() -> None:
+    parser = LogParser()
+    event = parser.parse_line(
+        "2026-05-30 12:00:00 DEBUG Failed to trigger 2FA push notification, continuing anyway"
+    )
+    assert not event.error
+    assert parser.summary.error_count == 0
+    assert not line_has_error("Failed to trigger 2FA push notification, continuing anyway")
+

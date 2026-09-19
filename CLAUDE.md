@@ -53,13 +53,14 @@
   - 실행 소스(`override/frozen_internal/module/binary_module/path`) 보관
   - final state 기준 완료 reason 일원화
 - `app/core/icloudpd_runtime.py`
-  - `icloudpd.cli`, `icloudpd.__main__`, PATH 실행 파일 엔트리포인트/버전 확인
+  - `icloudpd.cli`, `icloudpd.__main__`, PATH 실행 파일 엔트리포인트/버전 확인 (기본 요구: `icloudpd>=1.32.3,<2`)
   - 개발 모드 자동 설치(`--bootstrap-icloudpd`) 지원
   - Python 지원 범위 이탈(예: 3.14+) 경고 메시지 제공
   - 누락 시 앱 시작은 유지하고 경고로 안내(시작 차단 팝업 지양)
 - `app/core/log_parser.py`
   - MFA/에러/완료 키워드 파싱(case-insensitive)
   - 에러는 레벨/실패 구문 기반으로 판정(단순 `error` 단어 의존 지양)
+  - upstream(1.32.3+) 2FA 푸시 알림 비치명 로그(예: push 트리거 실패 안내) 에러 오탐 방지
   - 일시 네트워크 오류(transient) 판정
   - `RunSummary` 누적
 - `app/core/i18n.py`

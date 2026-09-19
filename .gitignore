@@ -33,3 +33,4 @@ wheelhouse/
 docs/_build/
 .cookies/
 .photos/
+.codegraph/

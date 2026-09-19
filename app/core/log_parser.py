@@ -33,11 +33,15 @@ _ERROR_PHRASE_PATTERNS = (
     re.compile(r"\btraceback\b", re.IGNORECASE),
     re.compile(r"\bexception\b", re.IGNORECASE),
 )
+_IGNORED_ERROR_PATTERNS = (
+    re.compile(r"failed to trigger 2fa push notification", re.IGNORECASE),
+)
 _ACTIVITY_PATTERNS = (
     re.compile(r"\bauthentication (?:was )?(?:successful|complete)\b", re.IGNORECASE),
     re.compile(r"\blogged in\b", re.IGNORECASE),
     re.compile(r"\bprocessing\b", re.IGNORECASE),
     re.compile(r"\bchecking\b", re.IGNORECASE),
+    re.compile(r"\b2fa push notification\b", re.IGNORECASE),
 )
 _TRANSIENT_ERROR_PATTERNS = (
     re.compile(r"timeout|timed out", re.IGNORECASE),
@@ -133,6 +137,8 @@ def line_has_error(line: str) -> bool:
 def _is_error_line(line: str) -> bool:
     stripped = line.strip()
     if not stripped:
+        return False
+    if any(pattern.search(stripped) for pattern in _IGNORED_ERROR_PATTERNS):
         return False
     if any(pattern.search(stripped) for pattern in _ERROR_LEVEL_PATTERNS):
         return True

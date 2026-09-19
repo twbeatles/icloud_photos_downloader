@@ -27,6 +27,7 @@ MVP는 `QProcess` 기반 subprocess 실행 방식을 사용하며, 인증은 `we
   - 다운로드/오류 카운트 + 최근 로그
   - 자동 재시도 대기 상태(`Retry pending`) 표시 + `Cancel Retry`
   - MFA 필요 시 URL 노출 + 외부 브라우저 열기 + (가능 시) 앱 내 WebView
+  - upstream(1.32.3+) 2FA 푸시 알림 비치명 로그 오탐 방지 및 인증 활동 감지
   - 로그 검색 + 오류만 보기 필터
 - 로그/정보 화면
   - 전체 로그 확인/지우기
@@ -103,7 +104,7 @@ pyrightconfig.json
 ## 5. 요구사항
 
 - Python: `>=3.10,<3.14`
-- `icloudpd`: `>=1.32.3,<2`
+- `icloudpd`: `>=1.32.3,<2` (Apple 2026+ 2FA 인증 흐름 개선 버전)
 - 권장: 가상환경 사용
 - 소스 실행 시 의존성 설치 필요
 
@@ -239,7 +240,7 @@ python scripts/check_utf8.py
 - 설정 -> CLI 매핑/검증
 - 시스템 로캘 기반 기본 언어 판정 + 사용자 언어 고정 복원
 - `icloudpd` 런타임 self-check/bootstrap 동작
-- 로그 파싱/상태 판정 + 일시 네트워크 오류 판정
+- 로그 파싱/상태 판정 + 일시 네트워크 오류 판정 + 2FA 푸시 비치명 로그 오탐 방지
 - `QSettings` 저장/복원 + 민감정보 미저장 + 실행 이력 저장(cap)
 - 내부 워커 엔트리포인트(`icloudpd.cli` 우선, `icloudpd.__main__` fallback)
 - runner 실행 해석 우선순위(`icloudpd.cli`/`icloudpd.__main__`/PATH) + override fallback + preflight + 커맨드 마스킹

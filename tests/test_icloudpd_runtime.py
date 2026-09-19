@@ -70,3 +70,8 @@ def test_python_version_warning_for_unsupported_version() -> None:
 def test_python_version_warning_none_for_supported_version() -> None:
     warning = runtime.python_version_warning((3, 13))
     assert warning is None
+
+
+def test_icloudpd_requirement_version() -> None:
+    assert runtime.ICLOUDPD_REQUIREMENT == "icloudpd>=1.32.3,<2"
+

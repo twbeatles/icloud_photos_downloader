@@ -48,7 +48,7 @@
   - MFA 문구
   - WebUI 시작 문구 -> `http://127.0.0.1:8080/`
   - 완료 문구
-  - ERROR 라인(레벨/실패 구문 기반, 단순 `error` 단어 오탐 지양)
+  - ERROR 라인(레벨/실패 구문 기반, 단순 `error` 단어 및 2FA 푸시 비치명 안내 구문 오탐 지양)
 - 완료 reason/상태 표시는 `final_state` 단일 기준으로 일치해야 한다.
 - 로그 파서는 case-insensitive + 일시 네트워크 오류(transient) 판정을 제공해야 한다.
 - MFA URL 알림과 NEED_MFA 상태 전이는 분리되어야 한다.
