@@ -286,3 +286,19 @@ python scripts/check_utf8.py
 - `CLAUDE.md`: 구현/운영 실무 가이드
 - `GEMINI.md`: 요구 정합성/검증 기준
 - `cladue.md`: 오타 호환 포인터
+
+## 14. Upstream 관계 및 동기화 상태
+
+- 이 저장소는 upstream의 GitHub fork가 아니라 독립적으로 관리됩니다. `upstream` 리모트는 등록되어 있지 않습니다.
+- 참조 upstream: `icloud-photos-downloader/icloud_photos_downloader` (CLI 원본). 이 앱은 upstream 코어를 수정하지 않고 GUI로 감싸 실행하므로, upstream 변경은 코드 병합이 아니라 `icloudpd` 최소 버전 요구(`>=1.32.3,<2`)와 로그 파서 대응으로 반영합니다.
+- 분기점: `3a97872` (이후 `72e0237`에서 GUI 앱으로 전환).
+- 동기화 상태(2026-10-02 확인): upstream `1.32.3`(`879c561`, 2026-05-30) 및 PyPI 최신 `1.32.3`과 일치. 반영할 잔여 변경 없음(2026+ 2FA 인증 복구, WebUI 푸시 로그 2종 포함).
+- 재동기화 절차:
+
+```bash
+git remote add upstream https://github.com/icloud-photos-downloader/icloud_photos_downloader.git
+git fetch upstream
+git log --oneline <분기점>..upstream/master  # 인증/CLI 옵션 변경만 선별 확인
+```
+
+- upstream에 새 릴리스가 나오면 `app/core/icloudpd_runtime.py`의 최소 버전과 `app/core/log_parser.py`의 로그 패턴을 먼저 검토합니다.
